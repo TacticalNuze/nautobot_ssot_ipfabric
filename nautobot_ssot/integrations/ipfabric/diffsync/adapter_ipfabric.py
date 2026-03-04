@@ -130,35 +130,11 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
         """Load data from IP Fabric."""
         self.load_sites()
-        managed_ipv4, vlans, stacks, interfaces = self.load_data()
+        managed_ipv4, _, stacks, _ = self.load_data()
 
         for location in self.get_all(self.location):
             if location.name is None:
                 continue
-            location_vlans = [vlan for vlan in vlans if vlan["siteName"] == location.name]
-            for vlan in location_vlans:
-                if not vlan["vlanId"] or (vlan["vlanId"] < 1 or vlan["vlanId"] > 4094):
-                    logger.warning(
-                        f"Not syncing VLAN, NAME: {vlan.get('vlanName')} due to invalid VLAN ID: {vlan.get('vlanId')}."
-                    )
-                    continue
-                description = vlan.get("dscr") if vlan.get("dscr") else f"VLAN ID: {vlan['vlanId']}"
-                vlan_name = vlan.get("vlanName") if vlan.get("vlanName") else f"{vlan['siteName']}:{vlan['vlanId']}"
-                if len(vlan_name) > name_max_length:
-                    logger.warning(f"Not syncing VLAN, {vlan_name} due to character limit exceeding {name_max_length}.")
-                    continue
-                try:
-                    vlan = self.vlan(
-                        name=vlan_name,
-                        location=vlan["siteName"],
-                        vid=vlan["vlanId"],
-                        status="Active",
-                        description=description,
-                    )
-                    self.add(vlan)
-                    location.add_child(vlan)
-                except ObjectAlreadyExists:
-                    logger.warning(f"Duplicate VLAN discovered, {vlan}")
             for device in self.client.devices.by_site.get(location.name, []):
                 base_args = {
                     "diffsync": self,
@@ -211,21 +187,13 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                 for index, dev in enumerate(member_devices):
                     if not dev["serial_number"]:
                         logger.warning(
-                            f"Serial Number will not be recorded for {dev['name']} due to character limit exceeds {device_serial_max_length}"
+                            f"Serial Number is missing or exceeds max length for {dev['name']}. Skipping device import."
                         )
+                        continue
                     try:
                         device_model = self.device(**dev)
                         self.add(device_model)
                         location.add_child(device_model)
-                        if index == 0:
-                            # TODO: New Login IP columns in 7.3
-                            device_primary_ip = str(device.login_ip.ip) if device.login_ip else None
-                            self.load_device_interfaces(
-                                device_model,
-                                interfaces.get(device.sn, []),
-                                device_primary_ip,
-                                managed_ipv4.get(device.sn, {}),
-                            )
                     except ObjectAlreadyExists:
                         logger.warning(f"Duplicate Device discovered, {device.model_dump()}")
 

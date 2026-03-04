@@ -188,9 +188,6 @@ class IpFabricDataSource(DataSource):
         return (
             DataMapping("Device", None, "Device", reverse("dcim:device_list")),
             DataMapping("Location", None, "Location", reverse("dcim:location_list")),
-            DataMapping("Interfaces", None, "Interfaces", reverse("dcim:interface_list")),
-            DataMapping("IP Addresses", None, "IP Addresses", reverse("ipam:ipaddress_list")),
-            DataMapping("VLANs", None, "VLANs", reverse("ipam:vlan_list")),
         )
 
     @classmethod

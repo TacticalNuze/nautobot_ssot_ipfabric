@@ -64,8 +64,6 @@ class NautobotDiffSync(DiffSyncModelAdapters):
             source (Adapter): DiffSync Adapter
         """
         for grouping in (
-            "_vlan",
-            "_interface",
             "_device",
             "_location",
         ):
@@ -123,6 +121,10 @@ class NautobotDiffSync(DiffSyncModelAdapters):
     def load_device(self, filtered_devices: List, location):
         """Load Devices from Nautobot."""
         for device_record in filtered_devices:
+            if not device_record.serial:
+                if self.job.debug:
+                    logger.debug(f"Skipping Nautobot Device due to missing serial: {device_record.name}")
+                continue
             if self.job.debug:
                 logger.debug("Loading Nautobot Device: %s", device_record.name)
             device_role = (
@@ -137,7 +139,7 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 location_name=device_record.location.name,
                 vendor=str(device_record.device_type.manufacturer),
                 status=device_record.status.name,
-                serial_number=device_record.serial if device_record.serial else "",
+                serial_number=device_record.serial,
             )
             if device_record.platform:
                 device.platform = device_record.platform.name
@@ -153,7 +155,6 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 continue
 
             location.add_child(device)
-            self.load_interfaces(device_record=device_record, diffsync_device=device)
 
     def load_vlans(self, filtered_vlans: List, location):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
@@ -238,12 +239,6 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                         nautobot_location_devices = Device.objects.filter(location=location_record)
                     if nautobot_location_devices.exists():
                         self.load_device(nautobot_location_devices, location)
-
-                    # Load Location Children - Vlans, if any.
-                    nautobot_location_vlans = VLAN.objects.filter(location=location_record)
-                    if not nautobot_location_vlans.exists():
-                        continue
-                    self.load_vlans(nautobot_location_vlans, location)
                 except Location.DoesNotExist:
                     logger.error("Unable to find Location, %s.", location_record)
         else:

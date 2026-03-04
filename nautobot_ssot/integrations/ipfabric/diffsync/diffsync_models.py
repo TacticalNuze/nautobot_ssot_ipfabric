@@ -182,12 +182,12 @@ class Device(DiffSyncExtras):
     """Device model."""
 
     _modelname = "device"
-    _identifiers = ("name",)
+    _identifiers = ("serial_number",)
     _attributes = (
+        "name",
         "location_name",
         "model",
         "vendor",
-        "serial_number",
         "role",
         "status",
         "platform",
@@ -196,7 +196,7 @@ class Device(DiffSyncExtras):
         "vc_position",
         "vc_master",
     )
-    _children = {"interface": "interfaces"}
+    _children = {}
 
     name: str
     location_name: Optional[str] = None
@@ -213,13 +213,11 @@ class Device(DiffSyncExtras):
 
     mgmt_address: Optional[str] = None
 
-    interfaces: List["Interface"] = []
-
     @classmethod
     def create(cls, adapter, ids, attrs):
         """Create Device in Nautobot under its parent location."""
         # Get DeviceType
-        device_name = ids["name"]
+        device_name = attrs.get("name")
         device_type_name = attrs["model"]
         device_type_filter = DeviceType.objects.filter(model=device_type_name)
         if device_type_filter.exists():
@@ -312,7 +310,7 @@ class Device(DiffSyncExtras):
             try:
                 new_device, _ = NautobotDevice.objects.get_or_create(
                     name=device_name,
-                    serial=attrs.get("serial_number", ""),
+                    serial=ids.get("serial_number", ""),
                     status=device_status_object,
                     device_type=device_type_object,
                     role=device_role_object,
@@ -359,13 +357,13 @@ class Device(DiffSyncExtras):
     def delete(self) -> Optional["DiffSyncModel"]:
         """Delete device in Nautobot."""
         try:
-            device_object = NautobotDevice.objects.get(name=self.name)
+            device_object = NautobotDevice.objects.get(serial=self.serial_number)
         except NautobotDevice.MultipleObjectsReturned:
             self.adapter.job.logger.error(
-                f"Multiple Devices found with the name {self.name}, unable to determine which one to delete"
+                f"Multiple Devices found with the serial number {self.serial_number}, unable to determine which one to delete"
             )
         except NautobotDevice.DoesNotExist:
-            self.adapter.job.logger.error(f"Unable to find a Device with the name {self.name} to delete")
+            self.adapter.job.logger.error(f"Unable to find a Device with the serial number {self.serial_number} to delete")
         else:
             self.safe_delete(
                 device_object,
@@ -377,13 +375,13 @@ class Device(DiffSyncExtras):
     def update(self, attrs):
         """Update devices in Nautobot based on Source."""
         try:
-            _device = NautobotDevice.objects.get(name=self.name)
+            _device = NautobotDevice.objects.get(serial=self.serial_number)
         except NautobotDevice.MultipleObjectsReturned:
             self.adapter.job.logger.error(
-                f"Multiple Devices found with the name {self.name}, unable to determine which one to update"
+                f"Multiple Devices found with the serial number {self.serial_number}, unable to determine which one to update"
             )
         except NautobotDevice.DoesNotExist:
-            self.adapter.job.logger.error(f"Unable to find a Device with the name {self.name} to update")
+            self.adapter.job.logger.error(f"Unable to find a Device with the serial number {self.serial_number} to update")
         else:
             return_super = True
             if attrs.get("status") == "Active":
@@ -449,8 +447,8 @@ class Device(DiffSyncExtras):
                         f"Unable to update Device {self.name} with a Location named {location_name}"
                     )
                     return_super = False
-            if attrs.get("serial_number"):
-                _device.serial = attrs.get("serial_number")
+            if attrs.get("name"):
+                _device.name = attrs.get("name")
             if SYNC_IPF_DEV_TYPE_TO_ROLE and (role_name := attrs.get("role")):
                 device_role_object = tonb_nbutils.get_or_create_device_role_object(
                     role_name=role_name,
