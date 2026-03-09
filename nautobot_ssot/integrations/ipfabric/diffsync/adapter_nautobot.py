@@ -228,7 +228,11 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                         "Error loading %s, invalid or missing attributes on object. Skipping...", location_record
                     )
                     continue
-                self.add(location)
+                try:
+                    self.add(location)
+                except ObjectAlreadyExists:
+                    logger.warning(f"Duplicate Location discovered, {location_record.name}")
+                    location = self.get(self.location, location_record.name)
                 try:
                     # Load Location's Children - Devices with Interfaces, if any.
                     if self.sync_ipfabric_tagged_only:
