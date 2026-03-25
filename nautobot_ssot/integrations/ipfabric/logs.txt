@@ -1,0 +1,128 @@
+2026-03-25 02:29:42.481805	sync_data	Info	—	
+DiffSync Summary: Create: 1120, Update: 125, Delete: 25, No Change: 773
+
+2026-03-25 02:29:42.485171	sync_data	Info	—	
+Syncing from IP Fabric to Nautobot
+
+2026-03-25 02:29:42.765214	create	Error	—	
+Unable to create a new Device named FW1-INTERNET-193-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:42.877889	create	Error	—	
+Unable to create a new Device named it-mar-int-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:44.148969	create_platform_object	Warning	—	
+Platform gaia already exists but belongs to Manufacturer Checkpoint, not Check Point. Skipping assignment to avoid validation errors.
+
+2026-03-25 02:29:44.151050	create	Warning	—	
+Unable to get or create a Platform named gaia, Device named FW1-6400-MGMT-NM will not have a Platform assigned
+
+2026-03-25 02:29:44.170251	create	Error	—	
+Unable to create a new Device named FW1-6400-MGMT-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:44.183770	create_platform_object	Warning	—	
+Platform gaia already exists but belongs to Manufacturer Checkpoint, not Check Point. Skipping assignment to avoid validation errors.
+
+2026-03-25 02:29:44.186189	create	Warning	—	
+Unable to get or create a Platform named gaia, Device named INTERNET-10G-NM will not have a Platform assigned
+
+2026-03-25 02:29:44.270578	create_platform_object	Warning	—	
+Platform gaia already exists but belongs to Manufacturer Checkpoint, not Check Point. Skipping assignment to avoid validation errors.
+
+2026-03-25 02:29:44.273134	create	Warning	—	
+Unable to get or create a Platform named gaia, Device named FW1-EXTRA-NM will not have a Platform assigned
+
+2026-03-25 02:29:44.780610	create	Error	—	
+Unable to create a new Device named c3850-mgmt-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:44.886717	_get_or_create_virtual_chassis	Error	—	
+Unable to perform validated_save() on Device named c3850-mgmt-NM-member2
+
+2026-03-25 02:29:44.890998	create	Error	—	
+Unable to update Device c3850-mgmt-NM-member2 with an ID of b17d6ce5-b356-4307-9f11-cb3b70adf759 with VirtualChassis data
+
+2026-03-25 02:29:45.256308	create	Error	—	
+Unable to create a new Device named it-mar-bn-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:45.612634	_get_or_create_virtual_chassis	Error	—	
+Unable to perform validated_save() on Device named C9300-SRV-NM
+
+2026-03-25 02:29:45.615121	create	Error	—	
+Unable to update Device C9300-SRV-NM with an ID of caa297a1-9146-4fb5-89f4-0a0d5e35b57d with VirtualChassis data
+
+2026-03-25 02:29:45.704404	_get_or_create_virtual_chassis	Error	—	
+Unable to perform validated_save() on Device named C9300-SRV-NM-member2
+
+2026-03-25 02:29:45.706720	create	Error	—	
+Unable to update Device C9300-SRV-NM-member2 with an ID of 6555007d-4f00-4f07-8fc9-1b3f72e00f66 with VirtualChassis data
+
+2026-03-25 02:29:45.829132	_get_or_create_virtual_chassis	Error	—	
+Unable to perform validated_save() on Device named C9300-SRV-NM-member3
+
+2026-03-25 02:29:45.831097	create	Error	—	
+Unable to update Device C9300-SRV-NM-member3 with an ID of d6ef9e9a-ceec-4299-90fc-463023b77ef6 with VirtualChassis data
+
+2026-03-25 02:29:46.243669	create_platform_object	Warning	—	
+Platform gaia already exists but belongs to Manufacturer Checkpoint, not Check Point. Skipping assignment to avoid validation errors.
+
+2026-03-25 02:29:46.246355	create	Warning	—	
+Unable to get or create a Platform named gaia, Device named FW1-MGMT-LAN-NM will not have a Platform assigned
+
+2026-03-25 02:29:46.264289	create	Error	—	
+Unable to create a new Device named FW1-MGMT-LAN-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:46.711752	create	Error	—	
+Unable to create a new Device named N93K-GT-NM1-2 at Location 01.1 - CED NM
+
+2026-03-25 02:29:46.835699	create	Error	—	
+Unable to create a new Device named C9300-DMZ-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:47.289407	create	Error	—	
+Unable to create a new Device named RTR-C8200L-Dealers-Nodo1 at Location 01.1 - CED NM
+
+2026-03-25 02:29:47.313278	create	Error	—	
+Unable to create a new Device named c3850-presentazione-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:47.741933	create	Error	—	
+Unable to create a new Device named N93K-GT-00-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:47.767650	create	Error	—	
+Unable to create a new Device named N93K-GT-NM1-1 at Location 01.1 - CED NM
+
+2026-03-25 02:29:47.888342	create	Error	—	
+Unable to create a new Device named N95K-GT-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:47.914386	create	Error	—	
+Unable to create a new Device named N93K-GT-NM2-2 at Location 01.1 - CED NM
+
+2026-03-25 02:29:48.364370	create	Error	—	
+Unable to create a new Device named N93K-GT-NM2-1 at Location 01.1 - CED NM
+
+2026-03-25 02:29:48.469571	_get_or_create_virtual_chassis	Error	—	
+Unable to perform validated_save() on Device named c9300-PKI-NM
+
+2026-03-25 02:29:48.471606	create	Error	—	
+Unable to update Device c9300-PKI-NM with an ID of dc7b244b-489f-48f5-92d2-d5c865f567ba with VirtualChassis data
+
+2026-03-25 02:29:48.557685	_get_or_create_virtual_chassis	Error	—	
+Unable to perform validated_save() on Device named c9300-PKI-NM-member2
+
+2026-03-25 02:29:48.559936	create	Error	—	
+Unable to update Device c9300-PKI-NM-member2 with an ID of 5cb8a8fa-afd0-43e7-945f-4731c7b7433b with VirtualChassis data
+
+2026-03-25 02:29:48.983274	create	Error	—	
+Unable to create a new Device named SW-GT-VMS-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:48.991522	create_platform_object	Warning	—	
+Platform gaia already exists but belongs to Manufacturer Checkpoint, not Check Point. Skipping assignment to avoid validation errors.
+
+2026-03-25 02:29:48.993713	create	Warning	—	
+Unable to get or create a Platform named gaia, Device named FW1-Intra-NM will not have a Platform assigned
+
+2026-03-25 02:29:49.091400	create	Error	—	
+Unable to create a new Device named N93K-GT-DC-NM1-1 at Location 01.1 - CED NM
+
+2026-03-25 02:29:49.493595	create	Error	—	
+Unable to create a new Device named WLC-GT-BRANCH-NM at Location 01.1 - CED NM
+
+2026-03-25 02:29:49.500671	create_platform_object	Warning	—	
+Platform gaia already exists but belongs to Manufacturer Checkpoint, not Check Point. Skipping assignment to avoid validation errors.
