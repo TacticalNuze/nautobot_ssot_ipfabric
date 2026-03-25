@@ -33,6 +33,26 @@ logger = logging.getLogger("nautobot.jobs")
 device_serial_max_length = Device._meta.get_field("serial").max_length
 name_max_length = VLAN._meta.get_field("name").max_length
 
+# Maps lower-case IPFabric vendor strings to their canonical Nautobot Manufacturer name.
+# Add entries here if further vendor name mismatches are discovered.
+VENDOR_NAME_MAP = {
+    "check point": "Checkpoint",
+    "checkpoint": "Checkpoint",
+    "palo alto networks": "Palo Alto Networks",
+    "palo alto": "Palo Alto Networks",
+}
+
+
+def normalize_vendor_name(vendor: str) -> str:
+    """Return a canonical Manufacturer name for the given IPFabric vendor string.
+
+    Falls back to str.capitalize() when no explicit mapping is found.
+    """
+    if not vendor:
+        return vendor
+    return VENDOR_NAME_MAP.get(vendor.lower(), vendor.capitalize())
+
+
 
 # pylint: disable=too-many-locals,too-many-nested-blocks,too-many-branches
 class IPFabricDiffSync(DiffSyncModelAdapters):
@@ -140,7 +160,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "diffsync": self,
                     "location_name": device.site,
                     "model": device.model or f"Default-{device.vendor}",
-                    "vendor": device.vendor.capitalize(),
+                    "vendor": normalize_vendor_name(device.vendor),
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
