@@ -934,7 +934,7 @@ class Vlan(DiffSyncExtras):
                 return super().update(attrs)
         return None
 
-
+logger.info("Using the latest version as of march 25")
 Location.model_rebuild()
 Device.model_rebuild()
 Interface.model_rebuild()
