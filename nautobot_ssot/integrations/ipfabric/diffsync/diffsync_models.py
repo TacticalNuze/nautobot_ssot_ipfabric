@@ -308,18 +308,29 @@ class Device(DiffSyncExtras):
 
         if device_type_object and location_object and device_role_object and device_status_object:
             try:
-                new_device, _ = NautobotDevice.objects.get_or_create(
-                    name=device_name,
+                new_device, created = NautobotDevice.objects.get_or_create(
                     serial=ids.get("serial_number", ""),
-                    status=device_status_object,
-                    device_type=device_type_object,
-                    role=device_role_object,
-                    location=location_object,
-                    defaults={"platform": platform_object},
+                    defaults={
+                        "name": device_name,
+                        "status": device_status_object,
+                        "device_type": device_type_object,
+                        "role": device_role_object,
+                        "location": location_object,
+                        "platform": platform_object,
+                    },
                 )
+                if not created:
+                    # Device already exists — update mutable fields to reflect IPFabric data
+                    new_device.name = device_name
+                    new_device.status = device_status_object
+                    new_device.device_type = device_type_object
+                    new_device.role = device_role_object
+                    new_device.location = location_object
+                    if platform_object:
+                        new_device.platform = platform_object
             except NautobotDevice.MultipleObjectsReturned:
                 adapter.job.logger.error(
-                    f"Multiple Devices returned with name {device_name} at Location {location_name}"
+                    f"Multiple Devices returned with serial {ids.get('serial_number')} (name {device_name})"
                 )
             except (DjangoBaseDBError, ValidationError):
                 adapter.job.logger.error(
@@ -501,6 +512,11 @@ class Device(DiffSyncExtras):
         virtual_chassis, _ = VirtualChassis.objects.get_or_create(name=name)
         device.virtual_chassis = virtual_chassis
         if position:
+            # Release any existing device that already holds this vc_position in the VC
+            # to avoid the unique-together constraint violation on (virtual_chassis, vc_position).
+            NautobotDevice.objects.filter(
+                virtual_chassis=virtual_chassis, vc_position=position
+            ).exclude(pk=device.pk).update(vc_position=None)
             device.vc_position = position
         if priority and device.vc_position:  # An update might already have vc_position assigned
             device.vc_priority = priority
