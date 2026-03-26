@@ -343,12 +343,11 @@ class Device(DiffSyncExtras):
                     tonb_nbutils.tag_object(nautobot_object=new_device, custom_field=LAST_SYNCHRONIZED_CF_NAME)
                 except (DjangoBaseDBError, ValidationError) as error:
                     adapter.job.logger.error(
-                        f"Unable to perform a validated_save() on Device {device_name} with an ID of {new_device.id}"
+                        f"Unable to perform a validated_save() on Device {device_name} with an ID of {new_device.id}. "
+                        f"Validation error detail: {error}"
                     )
-                    message = f"Unable to create device: {device_name}. A validation error occured. Enable debug for more information."
                     if adapter.job.debug:
                         logger.debug(error)
-                    logger.error(message)
 
                 vc_name = attrs.get("vc_name")
                 if vc_name:
@@ -359,9 +358,10 @@ class Device(DiffSyncExtras):
                         cls._get_or_create_virtual_chassis(
                             vc_name, new_device, adapter.job.logger, vc_master, vc_position, vc_priority
                         )
-                    except (DjangoBaseDBError, ValidationError):
+                    except (DjangoBaseDBError, ValidationError) as error:
                         adapter.job.logger.error(
-                            f"Unable to update Device {device_name} with an ID of {new_device.id} with VirtualChassis data"
+                            f"Unable to update Device {device_name} with an ID of {new_device.id} with VirtualChassis data. "
+                            f"Validation error detail: {error}"
                         )
                 return super().create(ids=ids, adapter=adapter, attrs=attrs)
         return None
@@ -494,8 +494,11 @@ class Device(DiffSyncExtras):
                     self._get_or_create_virtual_chassis(
                         vc_name, _device, self.adapter.job.logger, vc_master, vc_position, vc_priority
                     )
-                except (DjangoBaseDBError, ValidationError):
-                    self.adapter.job.logger.error(f"Unable to update VirtualChassis {vc_name} for Device {self.name}")
+                except (DjangoBaseDBError, ValidationError) as error:
+                    self.adapter.job.logger.error(
+                        f"Unable to update VirtualChassis {vc_name} for Device {self.name}. "
+                        f"Validation error detail: {error}"
+                    )
                     return_super = False
             if return_super:
                 return super().update(attrs)
@@ -529,7 +532,10 @@ class Device(DiffSyncExtras):
         try:
             device.validated_save()
         except (DjangoBaseDBError, ValidationError) as error:
-            job_logger.error(f"Unable to perform validated_save() on Device named {device.name}")
+            job_logger.error(
+                f"Unable to perform validated_save() on Device named {device.name}. "
+                f"Validation error detail: {error}"
+            )
             raise error
 
         if master:
