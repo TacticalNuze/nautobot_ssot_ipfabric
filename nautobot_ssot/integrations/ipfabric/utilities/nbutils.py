@@ -209,7 +209,10 @@ def create_platform_object(
     }
     try:
         platform_obj = Platform.objects.get(name=platform)
-        if platform_obj.manufacturer == manufacturer_obj:
+        # Compare manufacturer names in a normalized (case-insensitive) way so that
+        # minor casing differences (e.g. "Checkpoint" vs "Check Point") do not cause
+        # the platform to be rejected. Both are the same vendor.
+        if platform_obj.manufacturer.name.lower() == manufacturer_obj.name.lower():
             return platform_obj
 
         if logger:
