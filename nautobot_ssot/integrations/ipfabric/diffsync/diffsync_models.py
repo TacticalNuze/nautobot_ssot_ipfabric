@@ -32,6 +32,7 @@ from nautobot.ipam.models import VLAN, IPAddress
 from netutils.ip import netmask_to_cidr
 
 import nautobot_ssot.integrations.ipfabric.utilities.nbutils as tonb_nbutils
+from nautobot_ssot.integrations.ipfabric.diffsync.adapter_ipfabric import normalize_vendor_name
 from nautobot_ssot.integrations.ipfabric.constants import (
     DEFAULT_DEVICE_ROLE,
     DEFAULT_DEVICE_ROLE_COLOR,
@@ -403,7 +404,7 @@ class Device(DiffSyncExtras):
                 if device_tags.exists():
                     _device.tags.remove(safe_delete_tag)
 
-            vendor_name = attrs.get("vendor") or self.vendor
+            vendor_name = normalize_vendor_name(attrs.get("vendor") or self.vendor or "")
             device_type_name = attrs.get("model")
             if device_type_name:
                 device_type_object = tonb_nbutils.create_device_type_object(
