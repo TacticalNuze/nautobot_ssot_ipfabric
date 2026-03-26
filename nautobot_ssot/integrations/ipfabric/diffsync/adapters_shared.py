@@ -3,8 +3,8 @@
 # Maps lower-case IPFabric vendor strings to their canonical Nautobot Manufacturer name.
 # Add entries here if further vendor name mismatches are discovered.
 VENDOR_NAME_MAP = {
-    "check point": "Checkpoint",
-    "checkpoint": "Checkpoint",
+    "check point": "Check Point",
+    "checkpoint": "Check Point",
     "palo alto networks": "Palo Alto Networks",
     "palo alto": "Palo Alto Networks",
 }
