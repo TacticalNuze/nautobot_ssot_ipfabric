@@ -1,4 +1,23 @@
-"""Diff sync shared adapter class attritbutes to synchronize applications."""
+"""Diff sync shared adapter class attributes to synchronize applications."""
+
+# Maps lower-case IPFabric vendor strings to their canonical Nautobot Manufacturer name.
+# Add entries here if further vendor name mismatches are discovered.
+VENDOR_NAME_MAP = {
+    "check point": "Checkpoint",
+    "checkpoint": "Checkpoint",
+    "palo alto networks": "Palo Alto Networks",
+    "palo alto": "Palo Alto Networks",
+}
+
+
+def normalize_vendor_name(vendor: str) -> str:
+    """Return a canonical Manufacturer name for the given IPFabric vendor string.
+
+    Falls back to str.capitalize() when no explicit mapping is found.
+    """
+    if not vendor:
+        return vendor
+    return VENDOR_NAME_MAP.get(vendor.lower(), vendor.capitalize())
 
 from typing import ClassVar
 

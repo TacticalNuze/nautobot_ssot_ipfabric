@@ -32,7 +32,7 @@ from nautobot.ipam.models import VLAN, IPAddress
 from netutils.ip import netmask_to_cidr
 
 import nautobot_ssot.integrations.ipfabric.utilities.nbutils as tonb_nbutils
-from nautobot_ssot.integrations.ipfabric.diffsync.adapter_ipfabric import normalize_vendor_name
+from nautobot_ssot.integrations.ipfabric.diffsync.adapters_shared import normalize_vendor_name
 from nautobot_ssot.integrations.ipfabric.constants import (
     DEFAULT_DEVICE_ROLE,
     DEFAULT_DEVICE_ROLE_COLOR,
