@@ -108,12 +108,15 @@ class Location(DiffSyncExtras):
 
     _modelname = "location"
     _identifiers = ("name",)
-    _attributes = ("site_id", "status")
-    _children = {"device": "devices", "vlan": "vlans"}
+    _attributes = ("site_id", "status", "location_type", "parent_name")
+    _children = {"location": "locations", "device": "devices", "vlan": "vlans"}
 
     name: str
     site_id: Optional[str] = None
     status: str
+    location_type: str = "Site"
+    parent_name: Optional[str] = None
+    locations: List["Location"] = []
     devices: List["Device"] = []
     vlans: List["Vlan"] = []
 
@@ -122,7 +125,9 @@ class Location(DiffSyncExtras):
         """Create Location in Nautobot."""
         location = tonb_nbutils.create_location(
             location_name=ids["name"],
-            location_id=attrs["site_id"],
+            location_id=attrs.get("site_id"),
+            location_type_name=attrs.get("location_type", "Site"),
+            parent_name=attrs.get("parent_name"),
             logger=adapter.job.logger,
         )
         if location:
@@ -169,6 +174,27 @@ class Location(DiffSyncExtras):
                 device_tags = location.tags.filter(pk=safe_delete_tag.pk)
                 if device_tags.exists():
                     location.tags.remove(safe_delete_tag)
+            
+            location_type_name = attrs.get("location_type")
+            if location_type_name:
+                from nautobot.dcim.models import LocationType
+                try:
+                    loc_type, _ = LocationType.objects.get_or_create(name=location_type_name)
+                    location.location_type = loc_type
+                except (DjangoBaseDBError, ValidationError) as e:
+                    self.adapter.job.logger.error(f"Failed to update LocationType to {location_type_name} for Location {self.name}: {e}")
+
+            if "parent_name" in attrs:
+                parent_name = attrs.get("parent_name")
+                if parent_name:
+                    try:
+                        parent_loc = NautobotLocation.objects.get(name=parent_name)
+                        location.parent = parent_loc
+                    except NautobotLocation.DoesNotExist:
+                        self.adapter.job.logger.error(f"Failed to find parent Location {parent_name} for Location {self.name}")
+                else:
+                    location.parent = None
+            
             try:
                 # Calls validated_save() on the object
                 tonb_nbutils.tag_object(nautobot_object=location, custom_field=LAST_SYNCHRONIZED_CF_NAME)

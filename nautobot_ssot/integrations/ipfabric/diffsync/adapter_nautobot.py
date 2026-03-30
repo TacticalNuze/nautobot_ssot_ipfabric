@@ -216,23 +216,40 @@ class NautobotDiffSync(DiffSyncModelAdapters):
             logger.debug("Found %s Nautobot Location objects to start sync from", location_objects.count())
 
         if location_objects:
+            
+            diffsync_locations = []
+            
             for location_record in location_objects:
                 try:
                     location = self.location(
                         name=location_record.name,
                         site_id=location_record.custom_field_data.get("ipfabric_site_id"),
                         status=location_record.status.name,
+                        location_type=location_record.location_type.name,
+                        parent_name=location_record.parent.name if location_record.parent else None,
                     )
                 except AttributeError:
                     logger.error(
                         "Error loading %s, invalid or missing attributes on object. Skipping...", location_record
                     )
                     continue
+                diffsync_locations.append((location_record, location))
+                
+            for location_record, location in diffsync_locations:
                 try:
                     self.add(location)
                 except ObjectAlreadyExists:
                     logger.warning(f"Duplicate Location discovered, {location_record.name}")
                     location = self.get(self.location, location_record.name)
+            
+            for location_record, location in diffsync_locations:
+                if location.parent_name:
+                    try:
+                        parent_loc = self.get(self.location, location.parent_name)
+                        parent_loc.add_child(location)
+                    except Exception as e:
+                        logger.warning(f"Parent location {location.parent_name} not found in diffsync tree for Nautobot site {location.name}. Error: {e}")
+                
                 try:
                     # Load Location's Children - Devices with Interfaces, if any.
                     if self.sync_ipfabric_tagged_only:

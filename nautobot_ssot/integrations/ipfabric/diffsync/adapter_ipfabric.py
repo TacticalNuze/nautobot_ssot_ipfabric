@@ -22,6 +22,7 @@ from nautobot_ssot.integrations.ipfabric.constants import (
 from nautobot_ssot.integrations.ipfabric.diffsync import DiffSyncModelAdapters
 from nautobot_ssot.integrations.ipfabric.diffsync.adapters_shared import normalize_vendor_name
 from nautobot_ssot.integrations.ipfabric.utilities import utils as ipfabric_utils
+from nautobot_ssot.integrations.ipfabric.utilities.site_parser import parse_site_hierarchy
 
 try:
     from ipfabric import IPFClient
@@ -51,10 +52,37 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
     def load_sites(self):
         """Add IP Fabric Location objects as DiffSync Location models."""
         sites = self.client.inventory.sites.all()
-        for site in sites:
+        parsed_hierarchy = parse_site_hierarchy(sites)
+        
+        def site_depth(site_obj):
+            site_name = site_obj.get("siteName", "")
+            data = parsed_hierarchy.get(site_name, {})
+            pt = data.get("prefix_tuple")
+            return len(pt) if pt else 0
+
+        sorted_sites = sorted(sites, key=site_depth)
+
+        for site in sorted_sites:
+            site_name = site["siteName"]
+            hierarchy_data = parsed_hierarchy.get(site_name, {})
+            parent_name = hierarchy_data.get("parent_name")
+            location_type = hierarchy_data.get("location_type", "Site")
             try:
-                location = self.location(adapter=self, name=site["siteName"], site_id=site["id"], status="Active")
+                location = self.location(
+                    adapter=self, 
+                    name=site_name, 
+                    site_id=site["id"], 
+                    status="Active",
+                    location_type=location_type,
+                    parent_name=parent_name
+                )
                 self.add(location)
+                if parent_name:
+                    try:
+                        parent_loc = self.get(self.location, parent_name)
+                        parent_loc.add_child(location)
+                    except Exception as e:
+                        logger.warning(f"Parent location {parent_name} not found in diffsync tree for dict site {site_name}. Error: {e}")
             except ObjectAlreadyExists:
                 logger.warning(f"Duplicate Location discovered, {site}")
 

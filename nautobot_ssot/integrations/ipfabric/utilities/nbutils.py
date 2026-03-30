@@ -35,6 +35,8 @@ from nautobot_ssot.integrations.ipfabric.constants import LAST_SYNCHRONIZED_CF_N
 def create_location(
     location_name: str,
     location_id: Optional[str] = None,
+    location_type_name: str = "Site",
+    parent_name: Optional[str] = None,
     logger: Optional[logging.Logger] = None,
 ) -> Optional[Location]:
     """Creates a specified location in Nautobot.
@@ -42,6 +44,8 @@ def create_location(
     Args:
         location_name: Name of the location.
         location_id: ID of the location.
+        location_type_name: Name of the LocationType.
+        parent_name: Name of the Parent Location.
         logger: Logger to use for messaging.
 
     Returns:
@@ -49,15 +53,34 @@ def create_location(
         None: When there is a failure in getting or creating a Location.
     """
     try:
-        location_type = LocationType.objects.get(name="Site")
+        location_type, _ = LocationType.objects.get_or_create(
+            name=location_type_name,
+            defaults={"nestable": True}
+        )
         if not location_type.content_types.filter(app_label="ipam", model="vlan").exists():
             location_type.content_types.add(ContentType.objects.get_for_model(VLAN))
 
-        location_obj, _ = Location.objects.get_or_create(
+        parent_loc = None
+        if parent_name:
+            parent_loc = Location.objects.filter(name=parent_name).first()
+            if not parent_loc and logger:
+                logger.warning(f"Parent location {parent_name} not found for {location_name}")
+
+        location_obj, created = Location.objects.get_or_create(
             name=location_name,
-            location_type=location_type,
-            status=Status.objects.get(name="Active"),
+            defaults={
+                "location_type": location_type,
+                "status": Status.objects.get(name="Active"),
+                "parent": parent_loc,
+            }
         )
+        
+        # Ensure relationships on pre-existing locations
+        if not created:
+            location_obj.location_type = location_type
+            location_obj.parent = parent_loc
+            location_obj.status = Status.objects.get(name="Active")
+
     except Location.MultipleObjectsReturned:
         if logger:
             logger.error(f"Multiple Locations returned with name {location_name}")
