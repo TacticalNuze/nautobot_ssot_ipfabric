@@ -23,6 +23,7 @@ from nautobot_ssot.integrations.ipfabric.diffsync import DiffSyncModelAdapters
 from nautobot_ssot.integrations.ipfabric.diffsync.adapters_shared import normalize_vendor_name
 from nautobot_ssot.integrations.ipfabric.utilities import utils as ipfabric_utils
 from nautobot_ssot.integrations.ipfabric.utilities.site_parser import parse_site_hierarchy
+from nautobot_ssot.integrations.ipfabric.utilities.virtual_machine_parser import parse_virtual_machine_name
 
 try:
     from ipfabric import IPFClient
@@ -174,10 +175,10 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "platform": device.family,
                 }
                 if device.sn not in stacks:
-                    serial_number = device.sn
+                    parsed_name, parsed_serial = parse_virtual_machine_name(device.hostname, device.sn)
                     args = base_args.copy()
-                    args["name"] = device.hostname
-                    args["serial_number"] = serial_number if len(serial_number) < device_serial_max_length else ""
+                    args["name"] = parsed_name
+                    args["serial_number"] = parsed_serial if len(parsed_serial) < device_serial_max_length else ""
                     member_devices = [args]
                 else:
                     # member with the lowest member number will be considered master,
@@ -190,14 +191,15 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     for index, member in enumerate(stack_members):
                         # using `or` syntax in case memberSn is defined as None
                         member_sn = member.get("memberSn") or ""
+                        parsed_name, parsed_member_sn = parse_virtual_machine_name(device.hostname, member_sn)
                         args = base_args.copy()
                         if _ := member.get("pn"):
                             args["model"] = _
                         args.update(
                             {
-                                "serial_number": member_sn if len(member_sn) < device_serial_max_length else "",
-                                "name": f"{device.hostname}-member{member.get('member')}",
-                                "vc_name": device.hostname,
+                                "serial_number": parsed_member_sn if len(parsed_member_sn) < device_serial_max_length else "",
+                                "name": f"{parsed_name}-member{member.get('member')}",
+                                "vc_name": parsed_name,
                                 "vc_master": False,
                                 "vc_priority": member.get("member"),
                                 "vc_position": member.get("member"),
@@ -206,7 +208,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         if index == 0:
                             args.update(
                                 {
-                                    "name": device.hostname,
+                                    "name": parsed_name,
                                     "vc_master": True,
                                 }
                             )
