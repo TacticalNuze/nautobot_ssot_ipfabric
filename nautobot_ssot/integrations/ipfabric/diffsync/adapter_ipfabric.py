@@ -165,6 +165,8 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             if location.name is None:
                 continue
             for device in self.client.devices.by_site.get(location.name, []):
+                if device.family == 'vcmp':
+                    continue
                 base_args = {
                     "diffsync": self,
                     "location_name": device.site,
