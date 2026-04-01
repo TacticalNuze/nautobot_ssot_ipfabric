@@ -33,8 +33,8 @@ class DiffSyncModelAdapters(Adapter):
 
     location = diffsync_models.Location
     device = diffsync_models.Device
-    interface = diffsync_models.Interface
-    vlan = diffsync_models.Vlan
+    # interface = diffsync_models.Interface
+    # vlan = diffsync_models.Vlan
 
     top_level = [
         "location",

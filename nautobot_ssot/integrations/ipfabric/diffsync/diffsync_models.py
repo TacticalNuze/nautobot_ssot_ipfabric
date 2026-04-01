@@ -109,7 +109,7 @@ class Location(DiffSyncExtras):
     _modelname = "location"
     _identifiers = ("name",)
     _attributes = ("site_id", "status", "location_type", "parent_name")
-    _children = {"location": "locations", "device": "devices", "vlan": "vlans"}
+    _children = {"location": "locations", "device": "devices"}
 
     name: str
     site_id: Optional[str] = None
