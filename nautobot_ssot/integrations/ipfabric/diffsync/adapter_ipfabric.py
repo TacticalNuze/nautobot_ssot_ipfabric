@@ -166,6 +166,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                 continue
             for device in self.client.devices.by_site.get(location.name, []):
                 if device.family == 'vcmp':
+                    logger.info(f"Skipping import for device {device.hostname} with platform vcmp.")
                     continue
                 base_args = {
                     "diffsync": self,
