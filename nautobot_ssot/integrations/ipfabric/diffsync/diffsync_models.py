@@ -522,7 +522,7 @@ class Device(DiffSyncExtras):
                     )
                 except (DjangoBaseDBError, ValidationError) as error:
                     self.adapter.job.logger.error(
-                        f"Unable to update VirtualChassis {vc_name} for Device {self.name}. "
+                        f"Unable to update VirtualChassis {vc_name} for Device {self.name} with {attrs}. "
                         f"Validation error detail: {error}"
                     )
                     return_super = False
