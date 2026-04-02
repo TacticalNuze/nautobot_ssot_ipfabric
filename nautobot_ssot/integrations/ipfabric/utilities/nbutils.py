@@ -59,6 +59,8 @@ def create_location(
         )
         if not location_type.content_types.filter(app_label="ipam", model="vlan").exists():
             location_type.content_types.add(ContentType.objects.get_for_model(VLAN))
+        if not location_type.content_types.filter(app_label="dcim", model="device").exists():
+            location_type.content_types.add(ContentType.objects.get_for_model(Device))
 
         parent_loc = None
         if parent_name:
