@@ -201,7 +201,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         args.update(
                             {
                                 "serial_number": parsed_member_sn if len(parsed_member_sn) < device_serial_max_length else "",
-                                "name": f"{parsed_name}-member{member.get('member')}",
+                                "name": f"{parsed_name}-{member.get('member')}",
                                 "vc_name": parsed_name,
                                 "vc_master": False,
                                 "vc_priority": member.get("member"),
