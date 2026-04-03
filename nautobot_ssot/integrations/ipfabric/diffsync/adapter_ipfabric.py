@@ -211,7 +211,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         if index == 0:
                             args.update(
                                 {
-                                    "name": parsed_name,
+                                    "name": f"{parsed_name}-1",
                                     "vc_master": True,
                                 }
                             )
