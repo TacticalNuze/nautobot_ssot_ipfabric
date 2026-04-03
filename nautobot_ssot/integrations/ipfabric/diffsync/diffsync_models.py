@@ -336,7 +336,7 @@ class Device(DiffSyncExtras):
         if device_type_object and location_object and device_role_object and device_status_object:
             try:
                 new_device, created = NautobotDevice.objects.get_or_create(
-                    serial=ids.get("serial_number", ""),
+                    serial=ids.get("serial_number"),
                     defaults={
                         "name": device_name,
                         "status": device_status_object,
