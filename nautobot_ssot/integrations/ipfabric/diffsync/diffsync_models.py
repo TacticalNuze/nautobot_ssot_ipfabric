@@ -243,24 +243,32 @@ class Device(DiffSyncExtras):
     @classmethod
     def create(cls, adapter, ids, attrs):
         """Create Device in Nautobot under its parent location."""
-        # Get DeviceType
+        # Get DeviceType — strict lookup: model must match AND manufacturer must match.
+        # No auto-creation; if the DeviceType does not exist in Nautobot the device is skipped.
         device_name = attrs.get("name")
         device_type_name = attrs["model"]
-        device_type_filter = DeviceType.objects.filter(model=device_type_name)
-        if device_type_filter.exists():
-            device_type_object = device_type_filter.first()
-        else:
-            vendor_name = attrs["vendor"]
-            device_type_object = tonb_nbutils.create_device_type_object(
-                device_type=device_type_name,
-                vendor_name=vendor_name,
-                logger=adapter.job.logger,
+        vendor_name = normalize_vendor_name(attrs.get("vendor") or "")
+        try:
+            manufacturer_obj = Manufacturer.objects.get(name=vendor_name)
+            device_type_object = DeviceType.objects.get(
+                model=device_type_name,
+                manufacturer=manufacturer_obj,
             )
-            if not device_type_object:
-                adapter.job.logger.warning(
-                    f"Unable to create a Device with the name {device_name} because of a failure "
-                    f"to get or create a DeviceType named {device_type_name} with a Manufacturer named {vendor_name}"
-                )
+        except Manufacturer.DoesNotExist:
+            adapter.job.logger.error(
+                f"Couldn't assign device. No device type corresponding to {vendor_name} with {device_type_name}."
+            )
+            return None
+        except DeviceType.DoesNotExist:
+            adapter.job.logger.error(
+                f"Couldn't assign device. No device type corresponding to {vendor_name} with {device_type_name}."
+            )
+            return None
+        except (Manufacturer.MultipleObjectsReturned, DeviceType.MultipleObjectsReturned):
+            adapter.job.logger.error(
+                f"Ambiguous lookup for DeviceType {device_type_name} / Manufacturer {vendor_name}; skipping device {device_name}."
+            )
+            return None
         # Get Platform
         platform = attrs.get("platform")
         if platform and device_type_object:
@@ -433,16 +441,29 @@ class Device(DiffSyncExtras):
             vendor_name = normalize_vendor_name(attrs.get("vendor") or self.vendor or "")
             device_type_name = attrs.get("model")
             if device_type_name:
-                device_type_object = tonb_nbutils.create_device_type_object(
-                    device_type=device_type_name,
-                    vendor_name=vendor_name,
-                    logger=self.adapter.job.logger,
-                )
-                if device_type_object:
+                # Strict lookup: only assign a DeviceType that already exists in Nautobot.
+                # No auto-creation; report an error and skip if not found.
+                try:
+                    manufacturer_obj = Manufacturer.objects.get(name=vendor_name)
+                    device_type_object = DeviceType.objects.get(
+                        model=device_type_name,
+                        manufacturer=manufacturer_obj,
+                    )
                     _device.type = device_type_object
-                else:
-                    self.adapter.job.logger.warning(
-                        f"Unable to update Device {self.name} with a DeviceType of {device_type_name}"
+                except Manufacturer.DoesNotExist:
+                    self.adapter.job.logger.error(
+                        f"Couldn't assign device. No device type corresponding to {vendor_name} with {device_type_name}."
+                    )
+                    return_super = False
+                except DeviceType.DoesNotExist:
+                    self.adapter.job.logger.error(
+                        f"Couldn't assign device. No device type corresponding to {vendor_name} with {device_type_name}."
+                    )
+                    return_super = False
+                except (Manufacturer.MultipleObjectsReturned, DeviceType.MultipleObjectsReturned):
+                    self.adapter.job.logger.error(
+                        f"Ambiguous lookup for DeviceType {device_type_name} / Manufacturer {vendor_name}; "
+                        f"skipping DeviceType update for Device {self.name}."
                     )
                     return_super = False
             platform_name = attrs.get("platform")
