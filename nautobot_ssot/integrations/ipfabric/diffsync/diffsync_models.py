@@ -459,7 +459,7 @@ class Device(DiffSyncExtras):
                         model=device_type_name,
                         manufacturer=manufacturer_obj,
                     )
-                    _device.device_type = device_type_object
+                    _device.type = device_type_object
                 except Manufacturer.DoesNotExist:
                     self.adapter.job.logger.error(
                         f"Couldn't assign device. No device type corresponding to vendor {vendor_name}."
