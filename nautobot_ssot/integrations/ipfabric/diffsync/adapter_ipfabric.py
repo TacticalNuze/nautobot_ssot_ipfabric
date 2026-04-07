@@ -176,6 +176,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
+                    "part_number": getattr(device, "pn", None),
                 }
                 if device.sn not in stacks:
                     parsed_name, parsed_serial = parse_virtual_machine_name(device.hostname, device.sn)
@@ -198,6 +199,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         args = base_args.copy()
                         if _ := member.get("pn"):
                             args["model"] = _
+                            args["part_number"] = _
                         args.update(
                             {
                                 "serial_number": parsed_member_sn if len(parsed_member_sn) < device_serial_max_length else "",

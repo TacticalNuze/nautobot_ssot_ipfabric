@@ -222,6 +222,7 @@ class Device(DiffSyncExtras):
         "vc_priority",
         "vc_position",
         "vc_master",
+        "part_number",
     )
     _children = {}
 
@@ -237,7 +238,7 @@ class Device(DiffSyncExtras):
     vc_priority: Optional[int] = None
     vc_position: Optional[int] = None
     vc_master: Optional[bool] = None
-
+    part_number: Optional[str] = None
     mgmt_address: Optional[str] = None
 
     @classmethod
@@ -269,6 +270,15 @@ class Device(DiffSyncExtras):
                 f"Ambiguous lookup for DeviceType {device_type_name} / Manufacturer {vendor_name}; skipping device {device_name}."
             )
             return None
+
+        ipf_part_number = attrs.get("part_number") or ""
+        dt_part_number = device_type_object.part_number or ""
+        if ipf_part_number and dt_part_number and dt_part_number != ipf_part_number:
+            adapter.job.logger.error(
+                f"Couldn't assign device. Device type {device_type_name} part number '{dt_part_number}' does not match IPFabric part number '{ipf_part_number}'."
+            )
+            return None
+
         # Get Platform
         platform = attrs.get("platform")
         if platform and device_type_object:
@@ -449,7 +459,7 @@ class Device(DiffSyncExtras):
                         model=device_type_name,
                         manufacturer=manufacturer_obj,
                     )
-                    _device.type = device_type_object
+                    _device.device_type = device_type_object
                 except Manufacturer.DoesNotExist:
                     self.adapter.job.logger.error(
                         f"Couldn't assign device. No device type corresponding to {vendor_name} with {device_type_name}."
@@ -466,6 +476,16 @@ class Device(DiffSyncExtras):
                         f"skipping DeviceType update for Device {self.name}."
                     )
                     return_super = False
+            
+            if return_super:
+                ipf_part_number = attrs.get("part_number") or self.part_number or ""
+                dt_part_number = _device.device_type.part_number or ""
+                if ipf_part_number and dt_part_number and dt_part_number != ipf_part_number:
+                    self.adapter.job.logger.error(
+                        f"Couldn't update device {self.name}. Device type {_device.device_type.model} part number '{dt_part_number}' does not match IPFabric part number '{ipf_part_number}'."
+                    )
+                    return_super = False
+
             platform_name = attrs.get("platform")
             if platform_name:
                 try:
