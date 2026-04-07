@@ -262,7 +262,7 @@ class Device(DiffSyncExtras):
             return None
         except DeviceType.DoesNotExist:
             adapter.job.logger.error(
-                f"Couldn't assign device. No device type corresponding to device type {device_type_name}."
+                f"Couldn't assign device. No device type corresponding to device type {device_type_name} with model {device_type_name} and manufacturer {vendor_name}."
             )
             return None
         except (Manufacturer.MultipleObjectsReturned, DeviceType.MultipleObjectsReturned):
@@ -467,7 +467,7 @@ class Device(DiffSyncExtras):
                     return_super = False
                 except DeviceType.DoesNotExist:
                     self.adapter.job.logger.error(
-                        f"Couldn't assign device. No device type corresponding to device type {device_type_name}."
+                        f"Couldn't assign device. No device type corresponding to device type {device_type_name} with model {device_type_name} and manufacturer {vendor_name}."
                     )
                     return_super = False
                 except (Manufacturer.MultipleObjectsReturned, DeviceType.MultipleObjectsReturned):
