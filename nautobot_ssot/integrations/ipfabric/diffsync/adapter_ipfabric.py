@@ -229,7 +229,14 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         self.add(device_model)
                         location.add_child(device_model)
                     except ObjectAlreadyExists:
-                        logger.warning(f"Duplicate Device discovered, {device.model_dump()}")
+                        logger.warning(f"Duplicate Device discovered, {dev}")
+                    except ValueError as exc:
+                        logger.error(
+                            f"Pydantic validation failed for device '{dev.get('name')}' "
+                            f"(serial={dev.get('serial_number')}). "
+                            f"Fields passed: {list(dev.keys())}. "
+                            f"Full error: {exc}"
+                        )
 
 
 def pseudo_management_interface(hostname, device_interfaces, device_primary_ip):
