@@ -169,6 +169,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     logger.info(f"Skipping import for device {device.hostname} with platform vcmp.")
                     continue
                 base_args = {
+                    "diffsync":self,
                     "location_name": device.site,
                     "model": device.model or f"Default-{device.vendor}",
                     "vendor": normalize_vendor_name(device.vendor),
