@@ -262,6 +262,34 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                             f"Full error: {exc}"
                         )
 
+        # --- DIAGNOSTIC START ---
+        try:
+            loaded_hostnames = {d.name for d in self.get_all(self.device)}
+            missing_devs = []
+            for d in self.client.devices.all:
+                host_val = getattr(d, 'hostname', None)
+                if host_val not in loaded_hostnames and str(host_val) + "-1" not in loaded_hostnames:
+                    missing_devs.append(d)
+                    
+            if missing_devs:
+                logger.warning(f"DIAGNOSTIC: DiffSync dropped {len(missing_devs)} IPFabric devices before Nautobot sync comparison!")
+                
+                # Check why the first 10 failed
+                for m in missing_devs[:10]:
+                    reason = "Unknown"
+                    host_val = getattr(m, 'hostname', 'UnknownHost')
+                    site_val = getattr(m, 'site', None)
+                    if not site_val:
+                        reason = "Device has NO SITE assigned natively in IPFabric!"
+                    elif not any(loc.name == site_val for loc in self.get_all(self.location)):
+                        reason = f"Device site '{site_val}' was filtered out or missing from parsed Locations!"
+                    elif not getattr(m, 'sn', None):
+                        reason = "Device natively has NO SERIAL NUMBER in IPFabric!"
+                        
+                    logger.warning(f"Dropped Device '{host_val}' (Family: {getattr(m, 'family', None)}, Site: {site_val}, SDK SN: {getattr(m, 'sn', None)}): Reason -> {reason}")
+        except Exception as e:
+            logger.error(f"Diagnostic script failed: {e}")
+        # --- DIAGNOSTIC END ---
 
 def pseudo_management_interface(hostname, device_interfaces, device_primary_ip):
     """Return a dict for an non-existing interface for NAT management addresses."""
