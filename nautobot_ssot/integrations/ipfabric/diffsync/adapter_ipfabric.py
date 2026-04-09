@@ -168,7 +168,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                 continue
             for device in self.client.devices.by_site.get(location.name, []):
                 if device.family == 'vcmp':
-                    logger.info(f"Skipping import for device {device.hostname} with platform vcmp.")
+                    self.job.logger.info(f"Skipping import for device {device.hostname} with platform vcmp.")
                     continue
                 base_args = {
                     "diffsync":self,
@@ -223,7 +223,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
 
                 for index, dev in enumerate(member_devices):
                     if not dev["serial_number"]:
-                        logger.warning(
+                        self.job.logger.warning(
                             f"Serial Number is missing or exceeds max length for {dev['name']}. Skipping device import."
                         )
                         continue
@@ -232,9 +232,9 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         self.add(device_model)
                         location.add_child(device_model)
                     except ObjectAlreadyExists:
-                        logger.warning(f"Duplicate Device discovered, {dev}")
+                        self.job.logger.warning(f"Duplicate Device discovered, {dev}")
                     except ValueError as exc:
-                        logger.error(
+                        self.job.logger.error(
                             f"Pydantic validation failed for device '{dev.get('name')}' "
                             f"(serial={dev.get('serial_number')}). "
                             f"Fields passed: {list(dev.keys())}. "
