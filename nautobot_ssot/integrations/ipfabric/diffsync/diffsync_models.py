@@ -272,6 +272,10 @@ class Device(DiffSyncExtras):
                 model=device_type_name,
                 manufacturer=manufacturer_obj,
             )
+            adapter.job.logger.info(
+                f"DeviceType for '{device_name}' matched via model='{device_type_name}' "
+                f"(Nautobot model name: '{device_type_object.model}')."
+            )
         except DeviceType.DoesNotExist:
             pass
         except DeviceType.MultipleObjectsReturned:
@@ -289,7 +293,7 @@ class Device(DiffSyncExtras):
                 )
                 adapter.job.logger.info(
                     f"DeviceType for '{device_name}' matched via part_number='{device_type_name}' "
-                    f"(Nautobot model name: '{device_type_object.model}')."
+                    f"(Nautobot part number: '{device_type_object.part_number}')."
                 )
             except DeviceType.DoesNotExist:
                 adapter.job.logger.error(
