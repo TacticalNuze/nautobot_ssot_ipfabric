@@ -160,27 +160,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         """Load data from IP Fabric."""
         self.load_sites()
 
-        import json
-        import os
-        # Dump into the ipfabric folder relative to adapter_ipfabric.py
-        dump_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ipfabric_devices_dump.json")
-        try:
-            with open(dump_path, "w") as dump_file:
-                devs = []
-                for d in self.client.devices.all:
-                    dev_dict = {}
-                    for key in ["hostname", "vendor", "site", "sn", "family", "model", "dev_type", "pn"]:
-                        val = getattr(d, key, None)
-                        if callable(val):
-                            try:
-                                val = val()
-                            except Exception:
-                                val = str(val)
-                        dev_dict[key] = val
-                    devs.append(dev_dict)
-                json.dump(devs, dump_file, indent=4)
-        except Exception as e:
-            self.job.logger.error(f"Failed to dump IPFabric devices: {e}")
 
         managed_ipv4, _, stacks, _ = self.load_data()
 
@@ -272,7 +251,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     missing_devs.append(d)
                     
             if missing_devs:
-                logger.warning(f"DIAGNOSTIC: DiffSync dropped {len(missing_devs)} IPFabric devices before Nautobot sync comparison!")
+                self.job.logger.warning(f"DIAGNOSTIC: DiffSync dropped {len(missing_devs)} IPFabric devices before Nautobot sync comparison!")
                 
                 # Check why the first 10 failed
                 for m in missing_devs[:10]:
@@ -286,9 +265,9 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     elif not getattr(m, 'sn', None):
                         reason = "Device natively has NO SERIAL NUMBER in IPFabric!"
                         
-                    logger.warning(f"Dropped Device '{host_val}' (Family: {getattr(m, 'family', None)}, Site: {site_val}, SDK SN: {getattr(m, 'sn', None)}): Reason -> {reason}")
+                    self.job.logger.warning(f"Dropped Device '{host_val}' (Family: {getattr(m, 'family', None)}, Site: {site_val}, SDK SN: {getattr(m, 'sn', None)}): Reason -> {reason}")
         except Exception as e:
-            logger.error(f"Diagnostic script failed: {e}")
+            self.job.logger.error(f"Diagnostic script failed: {e}")
         # --- DIAGNOSTIC END ---
 
 def pseudo_management_interface(hostname, device_interfaces, device_primary_ip):
