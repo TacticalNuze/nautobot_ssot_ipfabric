@@ -284,7 +284,7 @@ class Device(DiffSyncExtras):
             )
             return None
 
-        # 2nd attempt: fall back to matching on DeviceType.part_number
+        # 2nd attempt: fall back to matching on DeviceType.part_number using device_type_name
         if device_type_object is None:
             try:
                 device_type_object = DeviceType.objects.get(
@@ -296,16 +296,39 @@ class Device(DiffSyncExtras):
                     f"(Nautobot part number: '{device_type_object.part_number}')."
                 )
             except DeviceType.DoesNotExist:
-                adapter.job.logger.error(
-                    f"Couldn't assign device '{device_name}'. No DeviceType found for "
-                    f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}'."
-                )
-                return None
+                pass
             except DeviceType.MultipleObjectsReturned:
                 adapter.job.logger.error(
                     f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; skipping device {device_name}."
                 )
                 return None
+
+        ipf_part_number = attrs.get("part_number") or ""
+        # 3rd attempt: fall back to matching on DeviceType.part_number using explicit part_number field
+        if device_type_object is None and ipf_part_number:
+            try:
+                device_type_object = DeviceType.objects.get(
+                    part_number=ipf_part_number,
+                    manufacturer=manufacturer_obj,
+                )
+                adapter.job.logger.info(
+                    f"DeviceType for '{device_name}' matched via explicit part_number='{ipf_part_number}' "
+                    f"(Nautobot part number: '{device_type_object.part_number}')."
+                )
+            except DeviceType.DoesNotExist:
+                pass
+            except DeviceType.MultipleObjectsReturned:
+                adapter.job.logger.error(
+                    f"Ambiguous DeviceType lookup for explicit part_number '{ipf_part_number}' / manufacturer {vendor_name}; skipping device {device_name}."
+                )
+                return None
+
+        if device_type_object is None:
+            adapter.job.logger.warning(
+                f"Couldn't assign device '{device_name}'. No DeviceType found for "
+                f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'."
+            )
+            return None
 
         # Get Platform
         platform = attrs.get("platform")
@@ -513,7 +536,7 @@ class Device(DiffSyncExtras):
                         )
                         return_super = False
 
-                    # 2nd attempt: fall back to part_number
+                    # 2nd attempt: fall back to part_number using device_type_name
                     if device_type_object is None and return_super:
                         try:
                             device_type_object = DeviceType.objects.get(
@@ -525,17 +548,41 @@ class Device(DiffSyncExtras):
                                 f"(Nautobot model name: '{device_type_object.model}')."
                             )
                         except DeviceType.DoesNotExist:
-                            self.adapter.job.logger.error(
-                                f"Couldn't update device '{self.name}'. No DeviceType found for "
-                                f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}'."
-                            )
-                            return_super = False
+                            pass
                         except DeviceType.MultipleObjectsReturned:
                             self.adapter.job.logger.error(
                                 f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; "
                                 f"skipping DeviceType update for Device {self.name}."
                             )
                             return_super = False
+
+                    ipf_part_number = attrs.get("part_number") or self.part_number or ""
+                    # 3rd attempt: fall back to part_number using explicit part_number field
+                    if device_type_object is None and return_super and ipf_part_number:
+                        try:
+                            device_type_object = DeviceType.objects.get(
+                                part_number=ipf_part_number,
+                                manufacturer=manufacturer_obj,
+                            )
+                            self.adapter.job.logger.info(
+                                f"DeviceType for '{self.name}' matched via explicit part_number='{ipf_part_number}' "
+                                f"(Nautobot model name: '{device_type_object.model}')."
+                            )
+                        except DeviceType.DoesNotExist:
+                            pass
+                        except DeviceType.MultipleObjectsReturned:
+                            self.adapter.job.logger.error(
+                                f"Ambiguous DeviceType lookup for explicit part_number '{ipf_part_number}' / manufacturer {vendor_name}; "
+                                f"skipping DeviceType update for Device {self.name}."
+                            )
+                            return_super = False
+
+                    if device_type_object is None and return_super:
+                        self.adapter.job.logger.warning(
+                            f"Couldn't update device '{self.name}'. No DeviceType found for "
+                            f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'."
+                        )
+                        return_super = False
 
                     if device_type_object and return_super:
                         _device.device_type = device_type_object
