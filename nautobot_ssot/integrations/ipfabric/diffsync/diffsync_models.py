@@ -252,16 +252,10 @@ class Device(DiffSyncExtras):
         device_name = attrs.get("name")
         device_type_name = attrs["model"]
         vendor_name = normalize_vendor_name(attrs.get("vendor") or "")
-        try:
-            manufacturer_obj = Manufacturer.objects.get(name=vendor_name)
-        except Manufacturer.DoesNotExist:
+        manufacturer_obj = tonb_nbutils.create_manufacturer(vendor_name, logger=adapter.job.logger)
+        if not manufacturer_obj:
             adapter.job.logger.error(
-                f"Couldn't assign device. No manufacturer found for vendor {vendor_name}."
-            )
-            return None
-        except Manufacturer.MultipleObjectsReturned:
-            adapter.job.logger.error(
-                f"Ambiguous manufacturer lookup for {vendor_name}; skipping device {device_name}."
+                f"Couldn't assign device '{device_name}'. Unable to get or create Manufacturer '{vendor_name}'."
             )
             return None
 
@@ -515,20 +509,12 @@ class Device(DiffSyncExtras):
             if device_type_name:
                 # Lookup by model name first, then fall back to part_number.
                 # IPFabric often reports the part number as the model name.
-                try:
-                    manufacturer_obj = Manufacturer.objects.get(name=vendor_name)
-                except Manufacturer.DoesNotExist:
+                manufacturer_obj = tonb_nbutils.create_manufacturer(vendor_name, logger=self.adapter.job.logger)
+                if not manufacturer_obj:
                     self.adapter.job.logger.error(
-                        f"Couldn't assign device. No manufacturer found for vendor {vendor_name}."
+                        f"Couldn't assign device '{self.name}'. Unable to get or create Manufacturer '{vendor_name}'."
                     )
                     return_super = False
-                    manufacturer_obj = None
-                except Manufacturer.MultipleObjectsReturned:
-                    self.adapter.job.logger.error(
-                        f"Ambiguous manufacturer lookup for {vendor_name}; skipping DeviceType update for {self.name}."
-                    )
-                    return_super = False
-                    manufacturer_obj = None
 
                 if manufacturer_obj and return_super:
                     device_type_object = None

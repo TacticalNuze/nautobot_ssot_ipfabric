@@ -15,8 +15,6 @@ def normalize_vendor_name(vendor: str) -> str:
 
     Falls back to str.capitalize() when no explicit mapping is found.
     """
-    if not vendor:
-        return vendor
     return VENDOR_NAME_MAP.get(vendor.lower(), vendor.capitalize())
 
 from typing import ClassVar
