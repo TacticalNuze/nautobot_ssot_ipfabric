@@ -244,40 +244,64 @@ class Device(DiffSyncExtras):
     @classmethod
     def create(cls, adapter, ids, attrs):
         """Create Device in Nautobot under its parent location."""
-        # Get DeviceType — strict lookup: model must match AND manufacturer must match.
+        # Get DeviceType — lookup by model name first, then fall back to part_number.
+        # IPFabric often reports the part number (e.g. "C9300-48P") as the model, while
+        # Nautobot stores the human-readable name (e.g. "Catalyst 9300-48P") in `model`
+        # and the part number in `part_number`.
         # No auto-creation; if the DeviceType does not exist in Nautobot the device is skipped.
         device_name = attrs.get("name")
         device_type_name = attrs["model"]
         vendor_name = normalize_vendor_name(attrs.get("vendor") or "")
         try:
             manufacturer_obj = Manufacturer.objects.get(name=vendor_name)
+        except Manufacturer.DoesNotExist:
+            adapter.job.logger.error(
+                f"Couldn't assign device. No manufacturer found for vendor {vendor_name}."
+            )
+            return None
+        except Manufacturer.MultipleObjectsReturned:
+            adapter.job.logger.error(
+                f"Ambiguous manufacturer lookup for {vendor_name}; skipping device {device_name}."
+            )
+            return None
+
+        device_type_object = None
+        # 1st attempt: match on DeviceType.model (human-readable name)
+        try:
             device_type_object = DeviceType.objects.get(
                 model=device_type_name,
                 manufacturer=manufacturer_obj,
             )
-        except Manufacturer.DoesNotExist:
-            adapter.job.logger.error(
-                f"Couldn't assign device. No device type corresponding to vendor {vendor_name}."
-            )
-            return None
         except DeviceType.DoesNotExist:
+            pass
+        except DeviceType.MultipleObjectsReturned:
             adapter.job.logger.error(
-                f"Couldn't assign device. No device type corresponding to device type {device_type_name} with model {device_type_name} and manufacturer {vendor_name}."
-            )
-            return None
-        except (Manufacturer.MultipleObjectsReturned, DeviceType.MultipleObjectsReturned):
-            adapter.job.logger.error(
-                f"Ambiguous lookup for DeviceType {device_type_name} / Manufacturer {vendor_name}; skipping device {device_name}."
+                f"Ambiguous DeviceType lookup for model '{device_type_name}' / manufacturer {vendor_name}; skipping device {device_name}."
             )
             return None
 
-        ipf_part_number = attrs.get("part_number") or ""
-        dt_part_number = device_type_object.part_number or ""
-        if ipf_part_number and dt_part_number and dt_part_number != ipf_part_number:
-            adapter.job.logger.error(
-                f"Couldn't assign device. Device type {device_type_name} part number '{dt_part_number}' does not match IPFabric part number '{ipf_part_number}'."
-            )
-            return None
+        # 2nd attempt: fall back to matching on DeviceType.part_number
+        if device_type_object is None:
+            try:
+                device_type_object = DeviceType.objects.get(
+                    part_number=device_type_name,
+                    manufacturer=manufacturer_obj,
+                )
+                adapter.job.logger.info(
+                    f"DeviceType for '{device_name}' matched via part_number='{device_type_name}' "
+                    f"(Nautobot model name: '{device_type_object.model}')."
+                )
+            except DeviceType.DoesNotExist:
+                adapter.job.logger.error(
+                    f"Couldn't assign device '{device_name}'. No DeviceType found for "
+                    f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}'."
+                )
+                return None
+            except DeviceType.MultipleObjectsReturned:
+                adapter.job.logger.error(
+                    f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; skipping device {device_name}."
+                )
+                return None
 
         # Get Platform
         platform = attrs.get("platform")
@@ -451,40 +475,66 @@ class Device(DiffSyncExtras):
             vendor_name = normalize_vendor_name(attrs.get("vendor") or self.vendor or "")
             device_type_name = attrs.get("model")
             if device_type_name:
-                # Strict lookup: only assign a DeviceType that already exists in Nautobot.
-                # No auto-creation; report an error and skip if not found.
+                # Lookup by model name first, then fall back to part_number.
+                # IPFabric often reports the part number as the model name.
                 try:
                     manufacturer_obj = Manufacturer.objects.get(name=vendor_name)
-                    device_type_object = DeviceType.objects.get(
-                        model=device_type_name,
-                        manufacturer=manufacturer_obj,
-                    )
-                    _device.type = device_type_object
                 except Manufacturer.DoesNotExist:
                     self.adapter.job.logger.error(
-                        f"Couldn't assign device. No device type corresponding to vendor {vendor_name}."
+                        f"Couldn't assign device. No manufacturer found for vendor {vendor_name}."
                     )
                     return_super = False
-                except DeviceType.DoesNotExist:
+                    manufacturer_obj = None
+                except Manufacturer.MultipleObjectsReturned:
                     self.adapter.job.logger.error(
-                        f"Couldn't assign device. No device type corresponding to device type {device_type_name} with model {device_type_name} and manufacturer {vendor_name}."
+                        f"Ambiguous manufacturer lookup for {vendor_name}; skipping DeviceType update for {self.name}."
                     )
                     return_super = False
-                except (Manufacturer.MultipleObjectsReturned, DeviceType.MultipleObjectsReturned):
-                    self.adapter.job.logger.error(
-                        f"Ambiguous lookup for DeviceType {device_type_name} / Manufacturer {vendor_name}; "
-                        f"skipping DeviceType update for Device {self.name}."
-                    )
-                    return_super = False
-            
-            if return_super:
-                ipf_part_number = attrs.get("part_number") or self.part_number or ""
-                dt_part_number = _device.device_type.part_number or ""
-                if ipf_part_number and dt_part_number and dt_part_number != ipf_part_number:
-                    self.adapter.job.logger.error(
-                        f"Couldn't update device {self.name}. Device type {_device.device_type.model} part number '{dt_part_number}' does not match IPFabric part number '{ipf_part_number}'."
-                    )
-                    return_super = False
+                    manufacturer_obj = None
+
+                if manufacturer_obj and return_super:
+                    device_type_object = None
+                    # 1st attempt: match on DeviceType.model
+                    try:
+                        device_type_object = DeviceType.objects.get(
+                            model=device_type_name,
+                            manufacturer=manufacturer_obj,
+                        )
+                    except DeviceType.DoesNotExist:
+                        pass
+                    except DeviceType.MultipleObjectsReturned:
+                        self.adapter.job.logger.error(
+                            f"Ambiguous DeviceType lookup for model '{device_type_name}' / manufacturer {vendor_name}; "
+                            f"skipping DeviceType update for Device {self.name}."
+                        )
+                        return_super = False
+
+                    # 2nd attempt: fall back to part_number
+                    if device_type_object is None and return_super:
+                        try:
+                            device_type_object = DeviceType.objects.get(
+                                part_number=device_type_name,
+                                manufacturer=manufacturer_obj,
+                            )
+                            self.adapter.job.logger.info(
+                                f"DeviceType for '{self.name}' matched via part_number='{device_type_name}' "
+                                f"(Nautobot model name: '{device_type_object.model}')."
+                            )
+                        except DeviceType.DoesNotExist:
+                            self.adapter.job.logger.error(
+                                f"Couldn't update device '{self.name}'. No DeviceType found for "
+                                f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}'."
+                            )
+                            return_super = False
+                        except DeviceType.MultipleObjectsReturned:
+                            self.adapter.job.logger.error(
+                                f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; "
+                                f"skipping DeviceType update for Device {self.name}."
+                            )
+                            return_super = False
+
+                    if device_type_object and return_super:
+                        _device.device_type = device_type_object
 
             platform_name = attrs.get("platform")
             if platform_name:
