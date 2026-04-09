@@ -168,16 +168,16 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             with open(dump_path, "w") as dump_file:
                 devs = []
                 for d in self.client.devices.all:
-                    devs.append({
-                        "hostname": getattr(d, "hostname", None),
-                        "vendor": getattr(d, "vendor", None),
-                        "site": getattr(d, "site", None),
-                        "sn": getattr(d, "sn", None),
-                        "family": getattr(d, "family", None),
-                        "model": getattr(d, "model", None),
-                        "dev_type": getattr(d, "dev_type", None),
-                        "pn": getattr(d, "pn", None)
-                    })
+                    dev_dict = {}
+                    for key in ["hostname", "vendor", "site", "sn", "family", "model", "dev_type", "pn"]:
+                        val = getattr(d, key, None)
+                        if callable(val):
+                            try:
+                                val = val()
+                            except Exception:
+                                val = str(val)
+                        dev_dict[key] = val
+                    devs.append(dev_dict)
                 json.dump(devs, dump_file, indent=4)
         except Exception as e:
             self.job.logger.error(f"Failed to dump IPFabric devices: {e}")
