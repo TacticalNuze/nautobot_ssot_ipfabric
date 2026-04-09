@@ -167,7 +167,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         try:
             with open(dump_path, "w") as dump_file:
                 devs = []
-                for d in self.client.devices.all():
+                for d in self.client.devices.all:
                     devs.append({
                         "hostname": getattr(d, "hostname", None),
                         "vendor": getattr(d, "vendor", None),
