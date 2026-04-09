@@ -171,14 +171,13 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     self.job.logger.info(f"Skipping import for device {device.hostname} with platform vcmp.")
                     continue
                 base_args = {
-                    "diffsync":self,
                     "location_name": device.site,
                     "model": device.model or f"Default-{device.vendor}",
                     "vendor": normalize_vendor_name(device.vendor),
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
-                    "part_number": getattr(device, "pn", None),
+                    "part_number": getattr(device, "pn", "") or "",
                 }
                 if device.sn not in stacks:
                     parsed_name, parsed_serial = parse_virtual_machine_name(device.hostname, device.sn)
