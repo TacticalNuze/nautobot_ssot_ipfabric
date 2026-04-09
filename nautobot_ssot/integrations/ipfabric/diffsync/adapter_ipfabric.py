@@ -159,6 +159,29 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
         """Load data from IP Fabric."""
         self.load_sites()
+
+        import json
+        import os
+        # Dump into the ipfabric folder relative to adapter_ipfabric.py
+        dump_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ipfabric_devices_dump.json")
+        try:
+            with open(dump_path, "w") as dump_file:
+                devs = []
+                for d in self.client.devices.all():
+                    devs.append({
+                        "hostname": getattr(d, "hostname", None),
+                        "vendor": getattr(d, "vendor", None),
+                        "site": getattr(d, "site", None),
+                        "sn": getattr(d, "sn", None),
+                        "family": getattr(d, "family", None),
+                        "model": getattr(d, "model", None),
+                        "dev_type": getattr(d, "dev_type", None),
+                        "pn": getattr(d, "pn", None)
+                    })
+                json.dump(devs, dump_file, indent=4)
+        except Exception as e:
+            self.job.logger.error(f"Failed to dump IPFabric devices: {e}")
+
         managed_ipv4, _, stacks, _ = self.load_data()
 
         for location in self.get_all(self.location):
