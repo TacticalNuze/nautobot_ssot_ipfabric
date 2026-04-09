@@ -271,7 +271,7 @@ class Device(DiffSyncExtras):
                 f"(Nautobot model name: '{device_type_object.model}')."
             )
         except DeviceType.DoesNotExist:
-            pass
+            adapter.job.logger.warning(f"Device '{device_name}': DeviceType lookup by model '{device_type_name}' failed.")
         except DeviceType.MultipleObjectsReturned:
             adapter.job.logger.error(
                 f"Ambiguous DeviceType lookup for model '{device_type_name}' / manufacturer {vendor_name}; skipping device {device_name}."
@@ -290,7 +290,7 @@ class Device(DiffSyncExtras):
                     f"(Nautobot part number: '{device_type_object.part_number}')."
                 )
             except DeviceType.DoesNotExist:
-                pass
+                adapter.job.logger.warning(f"Device '{device_name}': DeviceType fallback lookup by part_number='{device_type_name}' failed.")
             except DeviceType.MultipleObjectsReturned:
                 adapter.job.logger.error(
                     f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; skipping device {device_name}."
@@ -310,7 +310,7 @@ class Device(DiffSyncExtras):
                     f"(Nautobot part number: '{device_type_object.part_number}')."
                 )
             except DeviceType.DoesNotExist:
-                pass
+                adapter.job.logger.warning(f"Device '{device_name}': DeviceType fallback lookup by explicit part_number='{ipf_part_number}' failed.")
             except DeviceType.MultipleObjectsReturned:
                 adapter.job.logger.error(
                     f"Ambiguous DeviceType lookup for explicit part_number '{ipf_part_number}' / manufacturer {vendor_name}; skipping device {device_name}."
@@ -525,7 +525,7 @@ class Device(DiffSyncExtras):
                             manufacturer=manufacturer_obj,
                         )
                     except DeviceType.DoesNotExist:
-                        pass
+                        self.adapter.job.logger.warning(f"Device '{self.name}': DeviceType lookup by model '{device_type_name}' failed.")
                     except DeviceType.MultipleObjectsReturned:
                         self.adapter.job.logger.error(
                             f"Ambiguous DeviceType lookup for model '{device_type_name}' / manufacturer {vendor_name}; "
@@ -545,7 +545,7 @@ class Device(DiffSyncExtras):
                                 f"(Nautobot model name: '{device_type_object.model}')."
                             )
                         except DeviceType.DoesNotExist:
-                            pass
+                            self.adapter.job.logger.warning(f"Device '{self.name}': DeviceType fallback lookup by part_number='{device_type_name}' failed.")
                         except DeviceType.MultipleObjectsReturned:
                             self.adapter.job.logger.error(
                                 f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; "
@@ -566,7 +566,7 @@ class Device(DiffSyncExtras):
                                 f"(Nautobot model name: '{device_type_object.model}')."
                             )
                         except DeviceType.DoesNotExist:
-                            pass
+                            self.adapter.job.logger.warning(f"Device '{self.name}': DeviceType fallback lookup by explicit part_number='{ipf_part_number}' failed.")
                         except DeviceType.MultipleObjectsReturned:
                             self.adapter.job.logger.error(
                                 f"Ambiguous DeviceType lookup for explicit part_number '{ipf_part_number}' / manufacturer {vendor_name}; "
