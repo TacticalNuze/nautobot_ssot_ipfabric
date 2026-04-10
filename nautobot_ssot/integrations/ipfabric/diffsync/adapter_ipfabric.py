@@ -177,7 +177,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
-                    "part_number": getattr(device, "pn", "") or "",
+                    "part_number": str(getattr(device, "pn", "")) or str(""),
                 }
                 if device.sn not in stacks:
                     parsed_name, parsed_serial = parse_virtual_machine_name(device.hostname, device.sn)
