@@ -108,7 +108,7 @@ class Location(DiffSyncExtras):
 
     _modelname = "location"
     _identifiers = ("name",)
-    _attributes = ("site_id", "status", "location_type", "parent_name")
+    _attributes = ("site_id", "status")
     _children = {"location": "locations", "device": "devices"}
 
     name: str
@@ -175,25 +175,8 @@ class Location(DiffSyncExtras):
                 if device_tags.exists():
                     location.tags.remove(safe_delete_tag)
             
-            location_type_name = attrs.get("location_type")
-            if location_type_name:
-                from nautobot.dcim.models import LocationType
-                try:
-                    loc_type, _ = LocationType.objects.get_or_create(name=location_type_name)
-                    location.location_type = loc_type
-                except (DjangoBaseDBError, ValidationError) as e:
-                    self.adapter.job.logger.error(f"Failed to update LocationType to {location_type_name} for Location {self.name}: {e}")
-
-            if "parent_name" in attrs:
-                parent_name = attrs.get("parent_name")
-                if parent_name:
-                    try:
-                        parent_loc = NautobotLocation.objects.get(name=parent_name)
-                        location.parent = parent_loc
-                    except NautobotLocation.DoesNotExist:
-                        self.adapter.job.logger.error(f"Failed to find parent Location {parent_name} for Location {self.name}")
-                else:
-                    location.parent = None
+            # location_type and parent_name are structural hierarchy fields managed at creation.
+            # They are intentionally excluded from _attributes and are not updated here.
             
             try:
                 # Calls validated_save() on the object
