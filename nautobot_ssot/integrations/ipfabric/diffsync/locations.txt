@@ -1,5 +1,4 @@
 {
-  "data": {
     "locations": [
       {
         "name": "01.1 - CED NM"
@@ -554,5 +553,4 @@
         "name": "SOTTO CASSE SIMULATORI"
       }
     ]
-  }
 }
