@@ -54,6 +54,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
     def load_sites(self):
         """Add IP Fabric Location objects as DiffSync Location models."""
         sites = self.client.inventory.sites.all()
+        self.job.logger.info(f"Added locations to nautobot via ip fabric: {sites[0:5]}")
         #self.job.logger.info(f"The locations from ipfabric are {sites}.")
         locations=CUSTOM_LOCATIONS #format {"siteName": 1-location_name }
         self.job.logger.info(f"The locations from config are {locations}.")
