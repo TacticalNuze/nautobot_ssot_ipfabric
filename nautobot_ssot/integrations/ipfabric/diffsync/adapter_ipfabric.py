@@ -195,10 +195,12 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "part_number": str(getattr(device, "pn", "")) or str(""),
                 }
                 if device.sn not in stacks:
-                    parsed_name, parsed_serial = parse_virtual_machine_name(device.hostname, device.sn)
+                    parsed_name, _ = parse_virtual_machine_name(device.hostname, device.sn)
+                    # Use the raw IPFabric serial as-is (includes /XXXX suffix) to preserve uniqueness
+                    raw_serial = device.sn or ""
                     args = base_args.copy()
                     args["name"] = parsed_name
-                    args["serial_number"] = parsed_serial if len(parsed_serial) < device_serial_max_length else ""
+                    args["serial_number"] = raw_serial if len(raw_serial) < device_serial_max_length else ""
                     member_devices = [args]
                 else:
                     # member with the lowest member number will be considered master,
@@ -211,14 +213,16 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     for index, member in enumerate(stack_members):
                         # using `or` syntax in case memberSn is defined as None
                         member_sn = member.get("memberSn") or ""
-                        parsed_name, parsed_member_sn = parse_virtual_machine_name(device.hostname, member_sn)
+                        parsed_name, _ = parse_virtual_machine_name(device.hostname, member_sn)
+                        # Use the raw stack member serial as-is to preserve uniqueness (e.g. SERIAL/XXXX)
+                        raw_member_sn = member_sn
                         args = base_args.copy()
                         if _ := member.get("pn"):
                             args["model"] = _
                             args["part_number"] = _
                         args.update(
                             {
-                                "serial_number": parsed_member_sn if len(parsed_member_sn) < device_serial_max_length else "",
+                                "serial_number": raw_member_sn if len(raw_member_sn) < device_serial_max_length else "",
                                 "name": f"{parsed_name}-{member.get('member')}",
                                 "vc_name": parsed_name,
                                 "vc_master": False,
