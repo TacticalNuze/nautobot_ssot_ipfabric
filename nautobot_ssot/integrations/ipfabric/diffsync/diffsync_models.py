@@ -108,7 +108,7 @@ class Location(DiffSyncExtras):
 
     _modelname = "location"
     _identifiers = ("name",)
-    _attributes = ("site_id", "status")
+    _attributes = ("site_id", "status", "parent_name")
     _children = {"location": "locations", "device": "devices"}
 
     name: str
@@ -175,8 +175,27 @@ class Location(DiffSyncExtras):
                 if device_tags.exists():
                     location.tags.remove(safe_delete_tag)
             
-            # location_type and parent_name are structural hierarchy fields managed at creation.
-            # They are intentionally excluded from _attributes and are not updated here.
+            # location_type is excluded from _attributes (changing it causes Nautobot type-nesting
+            # validation failures). parent_name IS tracked so DiffSync can assign parents to
+            # locations that were created before their root custom location existed.
+            if "parent_name" in attrs:
+                parent_name = attrs.get("parent_name")
+                if parent_name:
+                    try:
+                        parent_loc = NautobotLocation.objects.get(name=parent_name)
+                        location.parent = parent_loc
+                    except NautobotLocation.DoesNotExist:
+                        self.adapter.job.logger.warning(
+                            f"Parent location '{parent_name}' not found in Nautobot; "
+                            f"skipping parent assignment for '{self.name}'."
+                        )
+                    except NautobotLocation.MultipleObjectsReturned:
+                        self.adapter.job.logger.warning(
+                            f"Multiple locations named '{parent_name}' found; "
+                            f"skipping parent assignment for '{self.name}'."
+                        )
+                else:
+                    location.parent = None
             
             try:
                 # Calls validated_save() on the object
