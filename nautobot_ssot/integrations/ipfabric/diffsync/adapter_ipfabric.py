@@ -18,6 +18,7 @@ from nautobot_ssot.integrations.ipfabric.constants import (
     DEFAULT_INTERFACE_MTU,
     IP_FABRIC_USE_CANONICAL_INTERFACE_NAME,
     SYNC_IPF_DEV_TYPE_TO_ROLE,
+    CUSTOM_LOCATIONS
 )
 from nautobot_ssot.integrations.ipfabric.diffsync import DiffSyncModelAdapters
 from nautobot_ssot.integrations.ipfabric.diffsync.adapters_shared import normalize_vendor_name
@@ -53,7 +54,20 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
     def load_sites(self):
         """Add IP Fabric Location objects as DiffSync Location models."""
         sites = self.client.inventory.sites.all()
-        parsed_hierarchy = parse_site_hierarchy(sites)
+        #self.job.logger.info(f"The locations from ipfabric are {sites}.")
+        locations=CUSTOM_LOCATIONS #format {"siteName": 1-location_name }
+        self.job.logger.info(f"The locations from config are {locations}.")
+        try:
+            for site in locations:
+                sites.append(site)
+                self.job.logger.info(f"Added location {site["siteName"]} to nautobot via config")
+        except Exception as e:
+            self.job.logger.error(f"Found exception during addition of sites. Error message {e}")
+        try:
+            self.job.logger.info(f"Starting the site hierarchy construction")
+            parsed_hierarchy = parse_site_hierarchy(sites)
+        except Exception as e:
+            self.job.logger.error(f"Found exception during parsing of sites. Error message {e}")
         
         def site_depth(site_obj):
             site_name = site_obj.get("siteName", "")
