@@ -320,20 +320,9 @@ class Device(DiffSyncExtras):
         if device_type_object is None:
             adapter.job.logger.warning(
                 f"Couldn't assign device '{device_name}'. No DeviceType found for "
-                f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'. "
-                f"Attempting automatic creation of DeviceType."
+                f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'."
             )
-            device_type_object = tonb_nbutils.create_device_type_object(
-                device_type=device_type_name,
-                vendor_name=vendor_name,
-                logger=adapter.job.logger,
-            )
-            if not device_type_object:
-                adapter.job.logger.error(
-                    f"Unable to create a Device with the name {device_name} because of a failure "
-                    f"to create a DeviceType named {device_type_name} with Manufacturer {vendor_name}."
-                )
-                return None
+            return None
 
         # Get Platform
         platform = attrs.get("platform")
@@ -577,20 +566,9 @@ class Device(DiffSyncExtras):
                     if device_type_object is None and return_super:
                         self.adapter.job.logger.warning(
                             f"Couldn't update device '{self.name}'. No DeviceType found for "
-                            f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'. "
-                            f"Attempting automatic creation of DeviceType."
+                            f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'."
                         )
-                        device_type_object = tonb_nbutils.create_device_type_object(
-                            device_type=device_type_name,
-                            vendor_name=vendor_name,
-                            logger=self.adapter.job.logger,
-                        )
-                        if not device_type_object:
-                            self.adapter.job.logger.error(
-                                f"Unable to update Device {self.name} because of a failure "
-                                f"to create a DeviceType named {device_type_name} with Manufacturer {vendor_name}."
-                            )
-                            return_super = False
+                        return_super = False
 
                     if device_type_object and return_super:
                         _device.device_type = device_type_object
