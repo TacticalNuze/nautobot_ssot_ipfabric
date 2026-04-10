@@ -87,7 +87,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                 location = self.location(
                     adapter=self, 
                     name=site_name, 
-                    site_id=site["id"], 
+                    site_id=site.get("id", ""), 
                     status="Active",
                     location_type=location_type,
                     parent_name=parent_name
