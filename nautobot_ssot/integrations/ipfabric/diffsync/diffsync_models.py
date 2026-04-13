@@ -336,7 +336,9 @@ class Device(DiffSyncExtras):
             platform_object = None
 
         # Get Role, update if missing cf and create otherwise
-        role_name = attrs.get("role") or DEFAULT_DEVICE_ROLE
+        # Prefix the role with "network_" so roles are consistently named (e.g. "network_fw", "network_switch").
+        _raw_role = attrs.get("role") or DEFAULT_DEVICE_ROLE
+        role_name = f"network_{_raw_role}" if not _raw_role.startswith("network_") else _raw_role
         device_role_filter = Role.objects.filter(name=role_name)
         if device_role_filter.exists():
             device_role_object = device_role_filter.first()
@@ -597,7 +599,10 @@ class Device(DiffSyncExtras):
                     return_super = False
             if attrs.get("name"):
                 _device.name = attrs.get("name")
-            if SYNC_IPF_DEV_TYPE_TO_ROLE and (role_name := attrs.get("role")):
+            _raw_role = attrs.get("role")
+            if _raw_role and not _raw_role.startswith("network_"):
+                _raw_role = f"network_{_raw_role}"
+            if SYNC_IPF_DEV_TYPE_TO_ROLE and (role_name := _raw_role):
                 device_role_object = tonb_nbutils.get_or_create_device_role_object(
                     role_name=role_name,
                     role_color=DEFAULT_DEVICE_ROLE_COLOR,
