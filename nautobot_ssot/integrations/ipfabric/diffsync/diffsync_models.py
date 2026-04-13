@@ -479,8 +479,6 @@ class Device(DiffSyncExtras):
             return_super = True
             if attrs.get("status") == "Active":
                 safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
-                if not _device.status == "Active":
-                    _device.status = Status.objects.get(name="Active")
                 device_tags = _device.tags.filter(pk=safe_delete_tag.pk)
                 if device_tags.exists():
                     _device.tags.remove(safe_delete_tag)
