@@ -18,8 +18,8 @@ from nautobot_ssot.integrations.ipfabric.constants import (
     DEFAULT_INTERFACE_MTU,
     IP_FABRIC_USE_CANONICAL_INTERFACE_NAME,
     SYNC_IPF_DEV_TYPE_TO_ROLE,
-    CUSTOM_LOCATIONS
-)
+    CUSTOM_LOCATIONS,
+    CUSTOM_ROLES,)
 from nautobot_ssot.integrations.ipfabric.diffsync import DiffSyncModelAdapters
 from nautobot_ssot.integrations.ipfabric.diffsync.adapters_shared import normalize_vendor_name
 from nautobot_ssot.integrations.ipfabric.utilities import utils as ipfabric_utils
@@ -185,6 +185,14 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                 if device.platform.lower() == 'vcmp':
                     self.job.logger.info(f"Skipping import for device {device.hostname} with platform vcmp.")
                     continue
+                
+                device_role = device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None
+                # Check mapping with "network_" prefix since it's added during DiffSync save
+                network_prefixed_role = f"network_{device_role}" if device_role and not device_role.startswith("network_") else device_role
+                if CUSTOM_ROLES and (device_role not in CUSTOM_ROLES and network_prefixed_role not in CUSTOM_ROLES):
+                    self.job.logger.info(f"Skipping import for device {device.hostname} as its role '{device_role}' is not in custom_roles.")
+                    continue
+
                 base_args = {
                     "location_name": device.site,
                     "model": device.model or f"Default-{device.vendor}",

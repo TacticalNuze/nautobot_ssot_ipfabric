@@ -26,3 +26,4 @@ SAFE_DELETE_IPADDRESS_STATUS = CONFIG.get("ipfabric_safe_delete_ipaddress_status
 LAST_SYNCHRONIZED_CF_NAME = "last_synced_from_sor"
 IP_FABRIC_USE_CANONICAL_INTERFACE_NAME = CONFIG.get("ipfabric_use_canonical_interface_name", False)
 CUSTOM_LOCATIONS= CONFIG.get("custom_locations")
+CUSTOM_ROLES = CONFIG.get("custom_roles")
