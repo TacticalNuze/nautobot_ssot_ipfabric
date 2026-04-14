@@ -235,12 +235,13 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                     continue
                 diffsync_locations.append((location_record, location))
                 
-            for location_record, location in diffsync_locations:
+            for index, (location_record, location) in enumerate(diffsync_locations):
                 try:
                     self.add(location)
                 except ObjectAlreadyExists:
                     logger.warning(f"Duplicate Location discovered, {location_record.name}")
                     location = self.get(self.location, location_record.name)
+                    diffsync_locations[index] = (location_record, location)
             
             for location_record, location in diffsync_locations:
                 if location.parent_name:
