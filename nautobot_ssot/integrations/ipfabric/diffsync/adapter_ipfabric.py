@@ -88,7 +88,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             try:
                 existing_loc = NautobotLocation.objects.filter(name=site_name).first()
                 if existing_loc and existing_loc.location_type:
-                    location_type = existing_loc.location_type
+                    location_type = existing_loc.location_type.name
             except Exception as e:
                 logger.warning(f"Could not retrieve existing location type for {site_name}: {e}")
 

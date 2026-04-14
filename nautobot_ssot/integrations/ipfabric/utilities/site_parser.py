@@ -78,7 +78,7 @@ def parse_site_hierarchy(sites: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any
             for site_name, data in parsed_sites.items():
                 existing_loc = NautobotLocation.objects.filter(name=site_name).first()
                 if existing_loc and existing_loc.location_type:
-                    data["location_type"] = existing_loc.location_type
+                    data["location_type"] = existing_loc.location_type.name
         except Exception as e:
             logger.warning(f"Error checking Nautobot for existing locations: {e}")
             
