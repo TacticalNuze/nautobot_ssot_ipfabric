@@ -199,6 +199,8 @@ class Location(DiffSyncExtras):
                     location.parent = None
             
             try:
+                if location.parent:
+                    location.location_type = location.parent.location_type
                 # Calls validated_save() on the object
                 tonb_nbutils.tag_object(nautobot_object=location, custom_field=LAST_SYNCHRONIZED_CF_NAME)
             except (DjangoBaseDBError, ValidationError) as e:
