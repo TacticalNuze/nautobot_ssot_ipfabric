@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 
 from diffsync import ObjectAlreadyExists
-from nautobot.dcim.models import Device
+from nautobot.dcim.models import Device, Location as NautobotLocation
 from nautobot.ipam.models import VLAN
 from netutils.interface import canonical_interface_name
 from netutils.mac import mac_to_format
@@ -83,6 +83,15 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             hierarchy_data = parsed_hierarchy.get(site_name, {})
             parent_name = hierarchy_data.get("parent_name")
             location_type = hierarchy_data.get("location_type", "Site")
+            
+            # Preserve existing Nautobot location type to prevent duplicate/recreated locations
+            try:
+                existing_loc = NautobotLocation.objects.filter(name=site_name).first()
+                if existing_loc and existing_loc.location_type:
+                    location_type = existing_loc.location_type
+            except Exception as e:
+                logger.warning(f"Could not retrieve existing location type for {site_name}: {e}")
+
             try:
                 location = self.location(
                     adapter=self, 

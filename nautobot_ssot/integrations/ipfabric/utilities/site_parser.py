@@ -72,6 +72,16 @@ def parse_site_hierarchy(sites: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any
                 if parent_info:
                     data["parent_name"] = parent_info["site_name"]
                     
+        # Pass 3: Preserve existing Nautobot location types
+        try:
+            from nautobot.dcim.models import Location as NautobotLocation
+            for site_name, data in parsed_sites.items():
+                existing_loc = NautobotLocation.objects.filter(name=site_name).first()
+                if existing_loc and existing_loc.location_type:
+                    data["location_type"] = existing_loc.location_type
+        except Exception as e:
+            logger.warning(f"Error checking Nautobot for existing locations: {e}")
+            
         return parsed_sites
     except Exception as e:
         logger.error(f"Error while solving the location types and parent locations. Error message {e}")
