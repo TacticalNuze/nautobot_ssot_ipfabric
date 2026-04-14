@@ -165,7 +165,7 @@ class Location(DiffSyncExtras):
         else:
             site_id = attrs.get("site_id")
             if site_id:
-                location.cf["ipfabric_site_id"] = site_id
+                location.name = site_id
             active_status = attrs.get("status")
             if active_status == "Active":
                 safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
@@ -184,6 +184,7 @@ class Location(DiffSyncExtras):
                     try:
                         parent_loc = NautobotLocation.objects.get(name=parent_name)
                         location.parent = parent_loc
+                        location.location_type = parent_loc.location_type
                     except NautobotLocation.DoesNotExist:
                         self.adapter.job.logger.warning(
                             f"Parent location '{parent_name}' not found in Nautobot; "

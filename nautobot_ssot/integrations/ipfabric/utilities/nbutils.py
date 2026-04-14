@@ -53,20 +53,23 @@ def create_location(
         None: When there is a failure in getting or creating a Location.
     """
     try:
-        location_type, _ = LocationType.objects.get_or_create(
-            name=location_type_name,
-            defaults={"nestable": True}
-        )
-        if not location_type.content_types.filter(app_label="ipam", model="vlan").exists():
-            location_type.content_types.add(ContentType.objects.get_for_model(VLAN))
-        if not location_type.content_types.filter(app_label="dcim", model="device").exists():
-            location_type.content_types.add(ContentType.objects.get_for_model(Device))
-
         parent_loc = None
         if parent_name:
             parent_loc = Location.objects.filter(name=parent_name).first()
             if not parent_loc and logger:
                 logger.warning(f"Parent location {parent_name} not found for {location_name}")
+
+        if parent_loc:
+            location_type = parent_loc.location_type
+        else:
+            location_type, _ = LocationType.objects.get_or_create(
+                name=location_type_name,
+                defaults={"nestable": True}
+            )
+            if not location_type.content_types.filter(app_label="ipam", model="vlan").exists():
+                location_type.content_types.add(ContentType.objects.get_for_model(VLAN))
+            if not location_type.content_types.filter(app_label="dcim", model="device").exists():
+                location_type.content_types.add(ContentType.objects.get_for_model(Device))
 
         location_obj, created = Location.objects.get_or_create(
             name=location_name,
@@ -91,22 +94,7 @@ def create_location(
             logger.error(f"Unable to create a new Location named {location_name} with LocationType Site")
     else:
         if location_id:
-            # Ensure custom field is available
-            try:
-                custom_field_obj, _ = CustomField.objects.get_or_create(
-                    type=CustomFieldTypeChoices.TYPE_TEXT,
-                    key="ipfabric_site_id",
-                    defaults={"label": "IPFabric Location ID"},
-                )
-            except CustomField.MultipleObjectsReturned:
-                if logger:
-                    logger.error("Multiple CustomFields returned with key ipfabric_site_id")
-            except (DjangoBaseDBError, ValidationError):
-                if logger:
-                    logger.error("Unable to create a new CustomField named ipfabric_site_id with type of TYPE_TEXT")
-            else:
-                custom_field_obj.content_types.add(ContentType.objects.get_for_model(Location))
-                location_obj.cf["ipfabric_site_id"] = location_id
+            location_obj.name = location_id
         # tag_object performs validated_save()
         try:
             tag_object(nautobot_object=location_obj, custom_field=LAST_SYNCHRONIZED_CF_NAME)
