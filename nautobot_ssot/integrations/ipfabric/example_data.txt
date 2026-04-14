@@ -1,0 +1,144 @@
+INITIAL DATA
+{
+    "asn": null,
+    "comments": "",
+    "contact_email": "",
+    "contact_name": "",
+    "contact_phone": "",
+    "created": "2026-04-14T09:21:44.553Z",
+    "custom_fields": {
+        "ipfabric_site_id": "07.4 - MUGELLO"
+    },
+    "description": "",
+    "facility": "",
+    "last_updated": "2026-04-14T09:21:44.553Z",
+    "latitude": null,
+    "location_type": "1bb2f9d0-c580-4828-85d0-f92fc5838824",
+    "longitude": null,
+    "name": "07.4 - MUGELLO",
+    "parent": "ca0ada80-a524-489a-b987-87c55ea8c6ed",
+    "physical_address": "",
+    "shipping_address": "",
+    "status": "bed808a6-e04d-424a-af87-d8a90f00e4e4",
+    "tags": [
+        "SSoT Synced from IPFabric"
+    ],
+    "tenant": null,
+    "time_zone": null
+}
+DATA WHILE SYNCING
+{
+    "asn": null,
+    "comments": "",
+    "contact_email": "",
+    "contact_name": "",
+    "contact_phone": "",
+    "created": "2026-04-14T11:21:44.553777+02:00",
+    "custom_fields": {
+        "ipfabric_site_id": "07.4 - MUGELLO",
+        "last_synced_from_sor": null,
+        "system_of_record": null
+    },
+    "description": "",
+    "display": "07 - PISTA RACING → 07.4 - MUGELLO",
+    "facility": "",
+    "id": "4ada82d5-f435-42a1-877f-2697eacc2e1d",
+    "last_updated": "2026-04-14T11:21:44.553787+02:00",
+    "latitude": null,
+    "location_type": {
+        "created": "2025-08-01T18:08:49.061644+02:00",
+        "custom_fields": {},
+        "description": "",
+        "display": "Site",
+        "id": "1bb2f9d0-c580-4828-85d0-f92fc5838824",
+        "last_updated": "2026-01-28T16:36:02.229755+01:00",
+        "name": "Site",
+        "natural_slug": "site_1bb2",
+        "nestable": false,
+        "notes_url": "/api/dcim/location-types/1bb2f9d0-c580-4828-85d0-f92fc5838824/notes/",
+        "object_type": "dcim.locationtype",
+        "parent": null,
+        "url": "/api/dcim/location-types/1bb2f9d0-c580-4828-85d0-f92fc5838824/"
+    },
+    "longitude": null,
+    "name": "07.4 - MUGELLO",
+    "natural_slug": "07-4-mugello_07-pista-racing_4ada",
+    "notes_url": "/api/dcim/locations/4ada82d5-f435-42a1-877f-2697eacc2e1d/notes/",
+    "object_type": "dcim.location",
+    "parent": {
+        "asn": null,
+        "comments": "",
+        "contact_email": "",
+        "contact_name": "",
+        "contact_phone": "",
+        "created": "2025-07-02T16:14:56.453359+02:00",
+        "custom_fields": {
+            "ipfabric_site_id": "",
+            "last_synced_from_sor": null,
+            "system_of_record": ""
+        },
+        "description": "",
+        "display": "07 - PISTA RACING",
+        "facility": "",
+        "id": "ca0ada80-a524-489a-b987-87c55ea8c6ed",
+        "last_updated": "2026-04-01T16:18:38.526922+02:00",
+        "latitude": null,
+        "location_type": {
+            "id": "cbc34467-5d91-4a45-b48f-5b4cc2a1fc4d",
+            "object_type": "dcim.locationtype",
+            "url": "/api/dcim/location-types/cbc34467-5d91-4a45-b48f-5b4cc2a1fc4d/"
+        },
+        "longitude": null,
+        "name": "07 - PISTA RACING",
+        "natural_slug": "07-pista-racing_ca0a",
+        "notes_url": "/api/dcim/locations/ca0ada80-a524-489a-b987-87c55ea8c6ed/notes/",
+        "object_type": "dcim.location",
+        "parent": null,
+        "physical_address": "",
+        "shipping_address": "",
+        "status": {
+            "id": "bed808a6-e04d-424a-af87-d8a90f00e4e4",
+            "object_type": "extras.status",
+            "url": "/api/extras/statuses/bed808a6-e04d-424a-af87-d8a90f00e4e4/"
+        },
+        "tenant": null,
+        "time_zone": null,
+        "url": "/api/dcim/locations/ca0ada80-a524-489a-b987-87c55ea8c6ed/"
+    },
+    "physical_address": "",
+    "shipping_address": "",
+    "status": {
+        "color": "4caf50",
+        "created": "2024-11-03T01:00:00+01:00",
+        "custom_fields": {},
+        "description": "Unit is active",
+        "display": "Active",
+        "id": "bed808a6-e04d-424a-af87-d8a90f00e4e4",
+        "last_updated": "2025-03-25T00:25:19.639166+01:00",
+        "name": "Active",
+        "natural_slug": "active_bed8",
+        "notes_url": "/api/extras/statuses/bed808a6-e04d-424a-af87-d8a90f00e4e4/notes/",
+        "object_type": "extras.status",
+        "url": "/api/extras/statuses/bed808a6-e04d-424a-af87-d8a90f00e4e4/"
+    },
+    "tags": [
+        {
+            "color": "8bc34a",
+            "created": "2025-03-20T17:02:07.666046+01:00",
+            "custom_fields": {},
+            "description": "Object synced at some point from IPFabric to Nautobot",
+            "display": "SSoT Synced from IPFabric",
+            "id": "3db5a138-aec5-4d9b-a53b-9bf561bd1769",
+            "last_updated": "2025-03-20T17:02:07.666070+01:00",
+            "name": "SSoT Synced from IPFabric",
+            "natural_slug": "ssot-synced-from-ipfabric_3db5",
+            "notes_url": "/api/extras/tags/3db5a138-aec5-4d9b-a53b-9bf561bd1769/notes/",
+            "object_type": "extras.tag",
+            "url": "/api/extras/tags/3db5a138-aec5-4d9b-a53b-9bf561bd1769/"
+        }
+    ],
+    "tenant": null,
+    "time_zone": null,
+    "tree_depth": null,
+    "url": "/api/dcim/locations/4ada82d5-f435-42a1-877f-2697eacc2e1d/"
+}
