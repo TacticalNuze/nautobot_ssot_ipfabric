@@ -165,7 +165,7 @@ class Location(DiffSyncExtras):
         else:
             site_id = attrs.get("site_id")
             if site_id:
-                location.custom_field_data["ipfabric_site_id"] = site_id
+                location.cf["ipfabric_site_id"] = site_id
             active_status = attrs.get("status")
             if active_status == "Active":
                 safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
