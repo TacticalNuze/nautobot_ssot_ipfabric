@@ -201,8 +201,8 @@ class Location(DiffSyncExtras):
             try:
                 # Calls validated_save() on the object
                 tonb_nbutils.tag_object(nautobot_object=location, custom_field=LAST_SYNCHRONIZED_CF_NAME)
-            except (DjangoBaseDBError, ValidationError):
-                self.adapter.job.logger.error(f"Unable to update the existing Location named {self.name} with {attrs}")
+            except (DjangoBaseDBError, ValidationError) as e:
+                self.adapter.job.logger.error(f"Unable to update the existing Location named {self.name} with {attrs}. Error : {e}")
             else:
                 return super().update(attrs)
         return None
