@@ -196,6 +196,11 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     self.job.logger.info(f"Skipping import for device {device.hostname} as its role '{device_role}' is not in custom_roles.")
                     continue
 
+                # device.pn is a callable on the IPFabric SDK object, not a plain property.
+                # Resolve it before building base_args to avoid a Pydantic "expected str, got method" error.
+                _pn_raw = getattr(device, "pn", None)
+                _part_number = str(_pn_raw() if callable(_pn_raw) else (_pn_raw or ""))
+
                 base_args = {
                     "location_name": device.site,
                     "model": device.model or f"Default-{device.vendor}",
@@ -203,7 +208,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
-                    "part_number": str(getattr(device, "pn", "")) or str(""),
+                    "part_number": _part_number,
                 }
                 if device.sn not in stacks:
                     parsed_name, _ = parse_virtual_machine_name(device.hostname, device.sn)
