@@ -19,6 +19,7 @@ from netutils.ip import cidr_to_netmask
 from netutils.mac import mac_to_format
 
 from nautobot_ssot.integrations.ipfabric.constants import (
+    CUSTOM_ROLES,
     DEFAULT_INTERFACE_MAC,
     DEFAULT_INTERFACE_MTU,
     SYNC_IPF_DEV_TYPE_TO_ROLE,
@@ -125,8 +126,28 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 if self.job.debug:
                     logger.debug(f"Skipping Nautobot Device due to missing serial: {device_record.name}")
                 continue
-            if self.job.debug:
-                logger.debug("Loading Nautobot Device: %s", device_record.name)
+
+            # Mirror the CUSTOM_ROLES filter applied on the IPFabric side.
+            # Devices whose role is not in CUSTOM_ROLES must be invisible to both adapters
+            # so DiffSync never treats them as "Nautobot-only" and triggers safe-delete
+            # (which would change their status to offline).
+            if CUSTOM_ROLES:
+                device_role = (
+                    str(device_record.role.cf.get("ipfabric_type"))
+                    if device_record.role.cf.get("ipfabric_type")
+                    else device_record.role.name
+                )
+                network_prefixed = (
+                    f"network_{device_role}"
+                    if not device_role.startswith("network_")
+                    else device_role
+                )
+                if device_role not in CUSTOM_ROLES and network_prefixed not in CUSTOM_ROLES:
+                    if self.job.debug:
+                        logger.debug(
+                            f"Skipping Nautobot Device '{device_record.name}' — role '{device_role}' not in CUSTOM_ROLES."
+                        )
+                    continue
             device_role = (
                 str(device_record.role.cf.get("ipfabric_type"))
                 if device_record.role.cf.get("ipfabric_type")
