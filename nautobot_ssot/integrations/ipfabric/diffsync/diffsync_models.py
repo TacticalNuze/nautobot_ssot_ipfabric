@@ -227,7 +227,6 @@ class Device(DiffSyncExtras):
         "vc_priority",
         "vc_position",
         "vc_master",
-        "part_number",
     )
     _children = {}
 
@@ -243,7 +242,6 @@ class Device(DiffSyncExtras):
     vc_priority: Optional[int] = None
     vc_position: Optional[int] = None
     vc_master: Optional[bool] = None
-    part_number: Optional[str] = None
     mgmt_address: Optional[str] = None
 
     @classmethod
@@ -265,7 +263,6 @@ class Device(DiffSyncExtras):
             return None
 
         device_type_object = None
-        # 1st attempt: match on DeviceType.model (human-readable name)
         try:
             device_type_object = DeviceType.objects.get(
                 model=device_type_name,
@@ -279,41 +276,10 @@ class Device(DiffSyncExtras):
             )
             return None
 
-        # 2nd attempt: fall back to matching on DeviceType.part_number using device_type_name
-        if device_type_object is None:
-            try:
-                device_type_object = DeviceType.objects.get(
-                    part_number=device_type_name,
-                    manufacturer=manufacturer_obj,
-                )
-            except DeviceType.DoesNotExist:
-                pass
-            except DeviceType.MultipleObjectsReturned:
-                adapter.job.logger.error(
-                    f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; skipping device {device_name}."
-                )
-                return None
-
-        ipf_part_number = attrs.get("part_number") or ""
-        # 3rd attempt: fall back to matching on DeviceType.part_number using explicit part_number field
-        if device_type_object is None and ipf_part_number:
-            try:
-                device_type_object = DeviceType.objects.get(
-                    part_number=ipf_part_number,
-                    manufacturer=manufacturer_obj,
-                )
-            except DeviceType.DoesNotExist:
-                pass
-            except DeviceType.MultipleObjectsReturned:
-                adapter.job.logger.error(
-                    f"Ambiguous DeviceType lookup for explicit part_number '{ipf_part_number}' / manufacturer {vendor_name}; skipping device {device_name}."
-                )
-                return None
-
         if device_type_object is None:
             adapter.job.logger.warning(
                 f"Couldn't assign device '{device_name}'. No DeviceType found for "
-                f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'."
+                f"manufacturer '{vendor_name}' matching model='{device_type_name}'."
             )
             return None
 
@@ -500,7 +466,6 @@ class Device(DiffSyncExtras):
 
                 if manufacturer_obj and return_super:
                     device_type_object = None
-                    # 1st attempt: match on DeviceType.model
                     try:
                         device_type_object = DeviceType.objects.get(
                             model=device_type_name,
@@ -515,43 +480,10 @@ class Device(DiffSyncExtras):
                         )
                         return_super = False
 
-                    # 2nd attempt: fall back to part_number using device_type_name
-                    if device_type_object is None and return_super:
-                        try:
-                            device_type_object = DeviceType.objects.get(
-                                part_number=device_type_name,
-                                manufacturer=manufacturer_obj,
-                            )
-                        except DeviceType.DoesNotExist:
-                            pass
-                        except DeviceType.MultipleObjectsReturned:
-                            self.adapter.job.logger.error(
-                                f"Ambiguous DeviceType lookup for part_number '{device_type_name}' / manufacturer {vendor_name}; "
-                                f"skipping DeviceType update for Device {self.name}."
-                            )
-                            return_super = False
-
-                    ipf_part_number = attrs.get("part_number") or self.part_number or ""
-                    # 3rd attempt: fall back to part_number using explicit part_number field
-                    if device_type_object is None and return_super and ipf_part_number:
-                        try:
-                            device_type_object = DeviceType.objects.get(
-                                part_number=ipf_part_number,
-                                manufacturer=manufacturer_obj,
-                            )
-                        except DeviceType.DoesNotExist:
-                            pass
-                        except DeviceType.MultipleObjectsReturned:
-                            self.adapter.job.logger.error(
-                                f"Ambiguous DeviceType lookup for explicit part_number '{ipf_part_number}' / manufacturer {vendor_name}; "
-                                f"skipping DeviceType update for Device {self.name}."
-                            )
-                            return_super = False
-
                     if device_type_object is None and return_super:
                         self.adapter.job.logger.warning(
                             f"Couldn't update device '{self.name}'. No DeviceType found for "
-                            f"manufacturer '{vendor_name}' matching model='{device_type_name}' or part_number='{device_type_name}' or part_number='{ipf_part_number}'."
+                            f"manufacturer '{vendor_name}' matching model='{device_type_name}'."
                         )
                         return_super = False
 

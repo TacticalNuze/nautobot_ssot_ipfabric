@@ -160,7 +160,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         """Load shared data from IP Fabric."""
         managed_ipv4 = defaultdict(dict)
         stacks, interfaces = defaultdict(list), defaultdict(list)
-        part_numbers = {}  # {sn: part_number} — built once to avoid per-device API calls
 
         vlans = self.client.fetch_all("tables/vlan/site-summary")
 
@@ -180,23 +179,13 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         ):
             stacks[stack["sn"]].append(stack)
 
-        # Bulk-fetch part numbers in a single API call instead of calling device.pn() per device.
-        # The IPFabric SDK exposes pn as a callable that makes an individual request each time
-        # it is invoked, which causes N API calls (one per device) and can overload the server.
-        try:
-            for row in self.client.inventory.devices.all(columns=["sn", "pn"]):
-                if row.get("sn"):
-                    part_numbers[row["sn"]] = str(row.get("pn") or "")
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.warning("Could not bulk-fetch part numbers from IPFabric; part_number will be empty: %s", exc)
-
-        return managed_ipv4, vlans, stacks, interfaces, part_numbers
+        return managed_ipv4, vlans, stacks, interfaces
 
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
         """Load data from IP Fabric."""
         self.load_sites()
 
-        managed_ipv4, _, stacks, _, part_numbers = self.load_data()
+        managed_ipv4, _, stacks, _ = self.load_data()
 
         for location in self.get_all(self.location):
             if location.name is None:
@@ -213,10 +202,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     self.job.logger.info(f"Skipping import for device {device.hostname} as its role '{device_role}' is not in custom_roles.")
                     continue
 
-                # Look up part number from the bulk-fetched dict (keyed by serial number).
-                # This avoids calling device.pn() per device which makes one API request each time.
-                _part_number = part_numbers.get(device.sn, "")
-
                 base_args = {
                     "location_name": device.site,
                     "model": device.model or f"Default-{device.vendor}",
@@ -224,7 +209,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
-                    "part_number": _part_number,
                 }
                 if device.sn not in stacks:
                     parsed_name, _ = parse_virtual_machine_name(device.hostname, device.sn)
@@ -249,9 +233,8 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         # Use the raw stack member serial as-is to preserve uniqueness (e.g. SERIAL/XXXX)
                         raw_member_sn = member_sn
                         args = base_args.copy()
-                        if _ := member.get("pn"):
-                            args["model"] = _
-                            args["part_number"] = _
+                        if pn := member.get("pn"):
+                            args["model"] = pn
                         args.update(
                             {
                                 "serial_number": raw_member_sn if len(raw_member_sn) < device_serial_max_length else "",
