@@ -53,57 +53,58 @@ def create_location(
         None: When there is a failure in getting or creating a Location.
     """
     try:
-        location_obj = Location.objects.filter(name=location_name).first()
+        parent_loc = None
+        if parent_name:
+            parent_loc = Location.objects.filter(name=parent_name).first()
+            if not parent_loc and logger:
+                logger.warning(f"Parent location {parent_name} not found for {location_name}")
 
-        if location_obj:
-            # Location already exists — never change its location_type or parent;
-            # those are managed exclusively via the Nautobot UI.
-            # Only restore status to Active in case it was flagged for safe-delete.
-            if location_obj.status.name != "Active":
-                location_obj.status = Status.objects.get(name="Active")
+        if parent_loc:
+            location_type = parent_loc.location_type
         else:
-            # Location does not exist — create it now.
-            parent_loc = None
-            if parent_name:
-                parent_loc = Location.objects.filter(name=parent_name).first()
-                if not parent_loc and logger:
-                    logger.warning(f"Parent location {parent_name} not found for {location_name}")
+            location_type, _ = LocationType.objects.get_or_create(
+                name=location_type_name,
+                defaults={"nestable": True}
+            )
+            if not location_type.content_types.filter(app_label="ipam", model="vlan").exists():
+                location_type.content_types.add(ContentType.objects.get_for_model(VLAN))
+            if not location_type.content_types.filter(app_label="dcim", model="device").exists():
+                location_type.content_types.add(ContentType.objects.get_for_model(Device))
 
-            if parent_loc:
-                location_type = parent_loc.location_type
-            else:
-                location_type, _ = LocationType.objects.get_or_create(
-                    name=location_type_name,
-                    defaults={"nestable": True}
+        location_obj, created = Location.objects.get_or_create(
+            name=location_name,
+            defaults={
+                "location_type": location_type,
+                "status": Status.objects.get(name="Active"),
+                "parent": parent_loc,
+            }
+        )
+        
+        # Ensure relationships on pre-existing locations
+        if not created:
+            location_obj.location_type = location_type
+            location_obj.parent = parent_loc
+            location_obj.status = Status.objects.get(name="Active")
+
+    except Location.MultipleObjectsReturned:
+        if logger:
+            logger.error(f"Multiple Locations returned with name {location_name}")
+    except (DjangoBaseDBError, ValidationError):
+        if logger:
+            logger.error(f"Unable to create a new Location named {location_name} with LocationType Site")
+    else:
+        if location_id:
+            location_obj.name = location_id
+        # tag_object performs validated_save()
+        try:
+            tag_object(nautobot_object=location_obj, custom_field=LAST_SYNCHRONIZED_CF_NAME)
+        except (DjangoBaseDBError, ValidationError):
+            if logger:
+                logger.warning(
+                    f"Unable to perform a validated_save() on Location {location_name} with an ID of {location_obj.id}"
                 )
-                if not location_type.content_types.filter(app_label="ipam", model="vlan").exists():
-                    location_type.content_types.add(ContentType.objects.get_for_model(VLAN))
-                if not location_type.content_types.filter(app_label="dcim", model="device").exists():
-                    location_type.content_types.add(ContentType.objects.get_for_model(Device))
-
-            location_obj = Location(
-                name=location_name,
-                location_type=location_type,
-                status=Status.objects.get(name="Active"),
-                parent=parent_loc,
-            )
-            if location_id:
-                location_obj.name = location_id
-
-    except (DjangoBaseDBError, ValidationError):
-        if logger:
-            logger.error(f"Unable to get or create a Location named {location_name}")
-        return None
-
-    # tag_object performs validated_save()
-    try:
-        tag_object(nautobot_object=location_obj, custom_field=LAST_SYNCHRONIZED_CF_NAME)
-    except (DjangoBaseDBError, ValidationError):
-        if logger:
-            logger.warning(
-                f"Unable to perform a validated_save() on Location {location_name} with an ID of {location_obj.id}"
-            )
-    return location_obj
+        return location_obj
+    return None
 
 
 def create_manufacturer(vendor_name: str, logger: Optional[logging.Logger] = None) -> Optional[Manufacturer]:

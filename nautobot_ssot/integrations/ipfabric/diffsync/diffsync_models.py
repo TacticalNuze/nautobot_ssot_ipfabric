@@ -75,9 +75,9 @@ class DiffSyncExtras(DiffSyncModel):
                 safe_delete_status = Status.objects.get(name=safe_delete_status.capitalize())
                 if hasattr(nautobot_object, "status"):
                     if not nautobot_object.status == safe_delete_status:
-                        nautobot_object.status = safe_delete_status
+                        #nautobot_object.status = safe_delete_status
                         logger.warning(f"{nautobot_object} has changed status to {safe_delete_status}.")
-                        update = True
+                        #update = True
                 else:
                     # Not everything has a status. This may come in handy once more models are synced.
                     logger.warning(f"{nautobot_object} has no Status attribute.")
@@ -590,14 +590,12 @@ class Device(DiffSyncExtras):
 
             location_name = attrs.get("location_name")
             if location_name:
-                # Only look up the location — never create or mutate it here.
-                # LocationType and parent are managed exclusively via the Nautobot UI.
-                location = NautobotLocation.objects.filter(name=location_name).first()
+                location = tonb_nbutils.create_location(location_name, logger=self.adapter.job.logger)
                 if location:
                     _device.location = location
                 else:
                     self.adapter.job.logger.warning(
-                        f"Unable to update Device {self.name}: Location '{location_name}' not found in Nautobot."
+                        f"Unable to update Device {self.name} with a Location named {location_name}"
                     )
                     return_super = False
             if attrs.get("name"):
