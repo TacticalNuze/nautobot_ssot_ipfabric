@@ -75,9 +75,9 @@ class DiffSyncExtras(DiffSyncModel):
                 safe_delete_status = Status.objects.get(name=safe_delete_status.capitalize())
                 if hasattr(nautobot_object, "status"):
                     if not nautobot_object.status == safe_delete_status:
-                        #nautobot_object.status = safe_delete_status
+                        nautobot_object.status = safe_delete_status
                         logger.warning(f"{nautobot_object} has changed status to {safe_delete_status}.")
-                        #update = True
+                        update = True
                 else:
                     # Not everything has a status. This may come in handy once more models are synced.
                     logger.warning(f"{nautobot_object} has no Status attribute.")
