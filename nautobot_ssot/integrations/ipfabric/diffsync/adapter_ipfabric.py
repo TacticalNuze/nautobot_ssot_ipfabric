@@ -160,6 +160,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         """Load shared data from IP Fabric."""
         managed_ipv4 = defaultdict(dict)
         stacks, interfaces = defaultdict(list), defaultdict(list)
+        part_numbers = {}  # {sn: part_number} — built once to avoid per-device API calls
 
         vlans = self.client.fetch_all("tables/vlan/site-summary")
 
@@ -178,14 +179,24 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             columns=["master", "member", "memberSn", "pn", "sn"]
         ):
             stacks[stack["sn"]].append(stack)
-        return managed_ipv4, vlans, stacks, interfaces
+
+        # Bulk-fetch part numbers in a single API call instead of calling device.pn() per device.
+        # The IPFabric SDK exposes pn as a callable that makes an individual request each time
+        # it is invoked, which causes N API calls (one per device) and can overload the server.
+        try:
+            for row in self.client.inventory.devices.all(columns=["sn", "pn"]):
+                if row.get("sn"):
+                    part_numbers[row["sn"]] = str(row.get("pn") or "")
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("Could not bulk-fetch part numbers from IPFabric; part_number will be empty: %s", exc)
+
+        return managed_ipv4, vlans, stacks, interfaces, part_numbers
 
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
         """Load data from IP Fabric."""
         self.load_sites()
 
-
-        managed_ipv4, _, stacks, _ = self.load_data()
+        managed_ipv4, _, stacks, _, part_numbers = self.load_data()
 
         for location in self.get_all(self.location):
             if location.name is None:
@@ -202,10 +213,9 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     self.job.logger.info(f"Skipping import for device {device.hostname} as its role '{device_role}' is not in custom_roles.")
                     continue
 
-                # device.pn is a callable on the IPFabric SDK object, not a plain property.
-                # Resolve it before building base_args to avoid a Pydantic "expected str, got method" error.
-                _pn_raw = getattr(device, "pn", None)
-                _part_number = str(_pn_raw() if callable(_pn_raw) else (_pn_raw or ""))
+                # Look up part number from the bulk-fetched dict (keyed by serial number).
+                # This avoids calling device.pn() per device which makes one API request each time.
+                _part_number = part_numbers.get(device.sn, "")
 
                 base_args = {
                     "location_name": device.site,
