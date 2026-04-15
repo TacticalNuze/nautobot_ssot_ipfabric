@@ -590,12 +590,14 @@ class Device(DiffSyncExtras):
 
             location_name = attrs.get("location_name")
             if location_name:
-                location = tonb_nbutils.create_location(location_name, logger=self.adapter.job.logger)
+                # Only look up the location — never create or mutate it here.
+                # LocationType and parent are managed exclusively via the Nautobot UI.
+                location = NautobotLocation.objects.filter(name=location_name).first()
                 if location:
                     _device.location = location
                 else:
                     self.adapter.job.logger.warning(
-                        f"Unable to update Device {self.name} with a Location named {location_name}"
+                        f"Unable to update Device {self.name}: Location '{location_name}' not found in Nautobot."
                     )
                     return_super = False
             if attrs.get("name"):

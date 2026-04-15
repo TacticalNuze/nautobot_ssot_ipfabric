@@ -84,13 +84,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             parent_name = hierarchy_data.get("parent_name")
             location_type = hierarchy_data.get("location_type", "Site")
             
-            # Preserve existing Nautobot location type to prevent duplicate/recreated locations
-            try:
-                existing_loc = NautobotLocation.objects.filter(name=site_name).first()
-                if existing_loc and existing_loc.location_type:
-                    location_type = existing_loc.location_type.name
-            except Exception as e:
-                logger.warning(f"Could not retrieve existing location type for {site_name}: {e}")
 
             try:
                 location = self.location(
@@ -110,6 +103,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                         logger.warning(f"Parent location {parent_name} not found in diffsync tree for dict site {site_name}. Error: {e}")
             except ObjectAlreadyExists:
                 logger.warning(f"Duplicate Location discovered, {site}")
+
 
     def load_device_interfaces(self, device_model, device_interfaces, device_primary_ip, managed_ipv4):
         """Create and load DiffSync Interface model objects for a specific device."""
