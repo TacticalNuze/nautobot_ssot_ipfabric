@@ -522,16 +522,24 @@ class Device(DiffSyncExtras):
 
             location_name = attrs.get("location_name")
             if location_name:
-                location = tonb_nbutils.create_location(location_name, logger=self.adapter.job.logger)
+                location = NautobotLocation.objects.filter(name=location_name).first()
                 if location:
                     _device.location = location
                 else:
                     self.adapter.job.logger.warning(
-                        f"Unable to update Device {self.name} with a Location named {location_name}"
+                        f"Unable to update Device {self.name} with Location '{location_name}' — not found in Nautobot."
                     )
-                    return_super = False
-            if attrs.get("name"):
-                _device.name = attrs.get("name")
+            new_name = attrs.get("name")
+            if new_name and new_name != _device.name:
+                if NautobotDevice.objects.filter(name=new_name).exclude(pk=_device.pk).exists():
+                    self.adapter.job.logger.warning(
+                        f"Skipping name update for '{self.serial_number}': "
+                        f"name '{new_name}' is already used by another device."
+                    )
+                else:
+                    _device.name = new_name
+            elif new_name:
+                _device.name = new_name
             _raw_role = attrs.get("role")
             if _raw_role and not _raw_role.startswith("network_"):
                 _raw_role = f"network_{_raw_role}"
