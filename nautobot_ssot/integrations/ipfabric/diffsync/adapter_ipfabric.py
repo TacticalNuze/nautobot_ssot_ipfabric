@@ -6,7 +6,9 @@ import logging
 from collections import defaultdict
 
 from diffsync import ObjectAlreadyExists
-from nautobot.dcim.models import Device, Location as NautobotLocation
+from django.db.models import Q
+from nautobot.dcim.models import Device, DeviceType, Location as NautobotLocation
+from nautobot.dcim.models import Manufacturer
 from nautobot.ipam.models import VLAN
 from netutils.interface import canonical_interface_name
 from netutils.mac import mac_to_format
@@ -202,10 +204,30 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     self.job.logger.info(f"Skipping import for device {device.hostname} as its role '{device_role}' is not in custom_roles.")
                     continue
 
+                raw_model = device.model or f"Default-{device.vendor}"
+                vendor_name = normalize_vendor_name(device.vendor)
+
+                # Normalize the IPFabric raw model string (often a part-number like "C9300-48P")
+                # to the canonical Nautobot DeviceType.model name so both adapters compare
+                # the same value and DiffSync does not generate false update diffs.
+                canonical_model = raw_model
+                try:
+                    mfr = Manufacturer.objects.get(name=vendor_name)
+                    dt = DeviceType.objects.filter(
+                        Q(model=raw_model) | Q(part_number=raw_model),
+                        manufacturer=mfr,
+                    ).first()
+                    if dt:
+                        canonical_model = dt.model
+                except Manufacturer.DoesNotExist:
+                    pass  # Manufacturer not in Nautobot yet; model string will be synced as-is
+                except Exception as _norm_exc:  # pylint: disable=broad-except
+                    logger.debug("Model normalization failed for %s: %s", raw_model, _norm_exc)
+
                 base_args = {
                     "location_name": device.site,
-                    "model": device.model or f"Default-{device.vendor}",
-                    "vendor": normalize_vendor_name(device.vendor),
+                    "model": canonical_model,
+                    "vendor": vendor_name,
                     "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
