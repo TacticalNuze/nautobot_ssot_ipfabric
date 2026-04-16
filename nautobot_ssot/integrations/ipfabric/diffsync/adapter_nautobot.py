@@ -153,11 +153,27 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 if device_record.role.cf.get("ipfabric_type")
                 else device_record.role.name
             )
+
+            # Resolve the IPFabric-level location that owns this device.
+            # IPFabric only knows about site-level locations (not racks/floors/sub-locations).
+            # We walk up the Nautobot location hierarchy until we reach a location that has
+            # the 'ipfabric_site_id' custom field set (i.e. a location synced from IPFabric),
+            # or the absolute root if none is found (safe fallback for first-time syncs).
+            # This handles arbitrary hierarchy depths, e.g.:
+            #   Site 1 → Site 1.1 → Site 1.1.a (ipfabric_site_id set) → Rack → Device
+            # Without this, the naive root-walk would land at "Site 1" when IPFabric
+            # reports the device under "Site 1.1.a", causing location_name mismatches.
+            root_location = device_record.location
+            while root_location.parent:
+                if root_location.custom_field_data.get("ipfabric_site_id"):
+                    break  # This is an IPFabric-synced site — stop here
+                root_location = root_location.parent
+
             device = self.device(
                 name=device_record.name,
                 model=str(device_record.device_type),
                 role=device_role if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
-                location_name=device_record.location.name,
+                location_name=root_location.name,
                 vendor=str(device_record.device_type.manufacturer),
                 status=device_record.status.name,
                 serial_number=device_record.serial,
@@ -172,10 +188,20 @@ class NautobotDiffSync(DiffSyncModelAdapters):
             try:
                 self.add(device)
             except ObjectAlreadyExists:
-                logger.warning(f"Duplicate device discovered, {device_record.name}")
+                # Expected when a rack-mounted device's serial has already been loaded
+                # because load_device is called for both the rack and its parent site.
+                if self.job.debug:
+                    logger.debug(
+                        f"Device '{device_record.name}' already loaded (likely via a parent/sub-location), skipping."
+                    )
                 continue
 
-            location.add_child(device)
+            # Retrieve the root location object from DiffSync to attach the device
+            try:
+                root_diffsync_location = self.get(self.location, root_location.name)
+                root_diffsync_location.add_child(device)
+            except Exception as e:
+                logger.error(f"Could not find root location {root_location.name} in DiffSync for device {device_record.name}: {e}")
 
     def load_vlans(self, filtered_vlans: List, location):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
