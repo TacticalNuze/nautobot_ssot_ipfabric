@@ -23,6 +23,7 @@ from nautobot_ssot.integrations.ipfabric.constants import (
     DEFAULT_INTERFACE_MAC,
     DEFAULT_INTERFACE_MTU,
     SYNC_IPF_DEV_TYPE_TO_ROLE,
+    SAFE_DELETE_DEVICE_STATUS,
 )
 from nautobot_ssot.integrations.ipfabric.diffsync import DiffSyncModelAdapters
 
@@ -125,6 +126,13 @@ class NautobotDiffSync(DiffSyncModelAdapters):
             if not device_record.serial:
                 if self.job.debug:
                     logger.debug(f"Skipping Nautobot Device due to missing serial: {device_record.name}")
+                continue
+
+            if device_record.status.name == SAFE_DELETE_DEVICE_STATUS and device_record.tags.filter(name="SSoT Safe Delete").exists():
+                if self.job.debug:
+                    logger.debug(
+                        f"Skipping Nautobot Device '{device_record.name}' as it is already marked for Safe Delete."
+                    )
                 continue
 
             # Mirror the CUSTOM_ROLES filter applied on the IPFabric side.

@@ -446,8 +446,11 @@ class Device(DiffSyncExtras):
             self.adapter.job.logger.error(f"Unable to find a Device with the serial number {self.serial_number} to update")
         else:
             return_super = True
-            if attrs.get("status") == "Active":
+            active_status = attrs.get("status")
+            if active_status == "Active":
                 safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
+                if _device.status.name != active_status:
+                    _device.status = Status.objects.get(name=active_status)
                 device_tags = _device.tags.filter(pk=safe_delete_tag.pk)
                 if device_tags.exists():
                     _device.tags.remove(safe_delete_tag)
