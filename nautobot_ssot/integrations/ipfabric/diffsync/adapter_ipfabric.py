@@ -228,7 +228,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "location_name": device.site,
                     "model": canonical_model,
                     "vendor": vendor_name,
-                    "role": device.dev_type or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
+                    "role": network_prefixed_role or DEFAULT_DEVICE_ROLE if SYNC_IPF_DEV_TYPE_TO_ROLE else None,
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
                 }
