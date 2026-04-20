@@ -359,19 +359,32 @@ class Device(DiffSyncExtras):
 
         if device_type_object and location_object and device_role_object and device_status_object:
             try:
-                new_device, created = NautobotDevice.objects.get_or_create(
-                    serial=ids.get("serial_number"),
-                    defaults={
-                        "name": device_name,
-                        "status": device_status_object,
-                        "device_type": device_type_object,
-                        "role": device_role_object,
-                        "location": location_object,
-                        "platform": platform_object,
-                    },
-                )
-                if not created:
-                    # Device already exists — update mutable fields to reflect IPFabric data
+                # First try to find by name to handle cases where the device exists but has no serial or a different serial
+                existing_device = NautobotDevice.objects.filter(name=device_name).first()
+                if existing_device:
+                    new_device = existing_device
+                    created = False
+                    new_device.serial = ids.get("serial_number")
+                    new_device.status = device_status_object
+                    new_device.device_type = device_type_object
+                    new_device.role = device_role_object
+                    new_device.location = location_object
+                    if platform_object:
+                        new_device.platform = platform_object
+                else:
+                    new_device, created = NautobotDevice.objects.get_or_create(
+                        serial=ids.get("serial_number"),
+                        defaults={
+                            "name": device_name,
+                            "status": device_status_object,
+                            "device_type": device_type_object,
+                            "role": device_role_object,
+                            "location": location_object,
+                            "platform": platform_object,
+                        },
+                    )
+                if not created and not existing_device:
+                    # Device already exists by serial — update mutable fields to reflect IPFabric data
                     new_device.name = device_name
                     new_device.status = device_status_object
                     new_device.device_type = device_type_object
@@ -424,15 +437,18 @@ class Device(DiffSyncExtras):
             self.adapter.job.logger.error(
                 f"Multiple Devices found with the serial number {self.serial_number}, unable to determine which one to delete"
             )
+            return None
         except NautobotDevice.DoesNotExist:
-            self.adapter.job.logger.error(f"Unable to find a Device with the serial number {self.serial_number} to delete")
+            self.adapter.job.logger.info(
+                f"Device with serial number {self.serial_number} already removed or updated. Skipping delete."
+            )
+            return super().delete()
         else:
             self.safe_delete(
                 device_object,
                 SAFE_DELETE_DEVICE_STATUS,
             )
             return super().delete()
-        return None
 
     def update(self, attrs):
         """Update devices in Nautobot based on Source."""
