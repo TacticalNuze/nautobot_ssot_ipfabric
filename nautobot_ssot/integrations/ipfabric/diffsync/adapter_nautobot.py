@@ -308,12 +308,14 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 
                 try:
                     # Load Location's Children - Devices with Interfaces, if any.
+                    # Fetch descendants using django-tree-queries to ensure devices in sub-locations/racks are loaded
+                    descendant_locations = location_record.descendants(include_self=True)
                     if self.sync_ipfabric_tagged_only:
                         nautobot_location_devices = Device.objects.filter(
-                            Q(location=location_record) & Q(tags__name=ssot_tag.name)
+                            Q(location__in=descendant_locations) & Q(tags__name=ssot_tag.name)
                         )
                     else:
-                        nautobot_location_devices = Device.objects.filter(location=location_record)
+                        nautobot_location_devices = Device.objects.filter(location__in=descendant_locations)
                     if nautobot_location_devices.exists():
                         self.load_device(nautobot_location_devices, location)
                 except Location.DoesNotExist:
