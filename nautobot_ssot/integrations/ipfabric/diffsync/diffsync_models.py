@@ -359,8 +359,11 @@ class Device(DiffSyncExtras):
 
         if device_type_object and location_object and device_role_object and device_status_object:
             try:
-                # First try to find by name to handle cases where the device exists but has no serial or a different serial
-                existing_device = NautobotDevice.objects.filter(name=device_name).first()
+                # First try to find by name (case-insensitive) to handle cases where the device exists but has no serial or a different serial
+                existing_device = NautobotDevice.objects.filter(name__iexact=device_name, location=location_object).first()
+                if not existing_device:
+                    # Also try without location filter in case it's in a sub-location but hasn't been moved yet
+                    existing_device = NautobotDevice.objects.filter(name__iexact=device_name).first()
                 if existing_device:
                     new_device = existing_device
                     created = False
