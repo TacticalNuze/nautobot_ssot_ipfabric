@@ -184,7 +184,6 @@ class Location(DiffSyncExtras):
                     try:
                         parent_loc = NautobotLocation.objects.get(name=parent_name)
                         location.parent = parent_loc
-                        location.location_type = parent_loc.location_type
                     except NautobotLocation.DoesNotExist:
                         self.adapter.job.logger.warning(
                             f"Parent location '{parent_name}' not found in Nautobot; "
@@ -199,8 +198,6 @@ class Location(DiffSyncExtras):
                     location.parent = None
             
             try:
-                if location.parent:
-                    location.location_type = location.parent.location_type
                 # Calls validated_save() on the object
                 tonb_nbutils.tag_object(nautobot_object=location, custom_field=LAST_SYNCHRONIZED_CF_NAME)
             except (DjangoBaseDBError, ValidationError) as e:
@@ -392,7 +389,9 @@ class Device(DiffSyncExtras):
                     new_device.status = device_status_object
                     new_device.device_type = device_type_object
                     new_device.role = device_role_object
-                    new_device.location = location_object
+                    if new_device.location != location_object:
+                        new_device.rack = None
+                        new_device.location = location_object
                     if platform_object:
                         new_device.platform = platform_object
             except NautobotDevice.MultipleObjectsReturned:
@@ -434,14 +433,11 @@ class Device(DiffSyncExtras):
 
     def delete(self) -> Optional["DiffSyncModel"]:
         """Delete device in Nautobot."""
-        try:
-            device_object = NautobotDevice.objects.get(serial=self.serial_number)
-        except NautobotDevice.MultipleObjectsReturned:
-            self.adapter.job.logger.error(
-                f"Multiple Devices found with the serial number {self.serial_number}, unable to determine which one to delete"
-            )
-            return None
-        except NautobotDevice.DoesNotExist:
+        device_object = NautobotDevice.objects.filter(name__iexact=self.name).first()
+        if not device_object and self.serial_number:
+            device_object = NautobotDevice.objects.filter(serial=self.serial_number).first()
+            
+        if not device_object:
             self.adapter.job.logger.info(
                 f"Device with serial number {self.serial_number} already removed or updated. Skipping delete."
             )
@@ -455,14 +451,13 @@ class Device(DiffSyncExtras):
 
     def update(self, attrs):
         """Update devices in Nautobot based on Source."""
-        try:
-            _device = NautobotDevice.objects.get(serial=self.serial_number)
-        except NautobotDevice.MultipleObjectsReturned:
-            self.adapter.job.logger.error(
-                f"Multiple Devices found with the serial number {self.serial_number}, unable to determine which one to update"
-            )
-        except NautobotDevice.DoesNotExist:
-            self.adapter.job.logger.error(f"Unable to find a Device with the serial number {self.serial_number} to update")
+        _device = NautobotDevice.objects.filter(name__iexact=self.name).first()
+        if not _device and self.serial_number:
+            _device = NautobotDevice.objects.filter(serial=self.serial_number).first()
+            
+        if not _device:
+            self.adapter.job.logger.error(f"Unable to find a Device with the name {self.name} or serial number {self.serial_number} to update")
+            return None
         else:
             return_super = True
             active_status = attrs.get("status")
@@ -546,7 +541,9 @@ class Device(DiffSyncExtras):
             if location_name:
                 location = NautobotLocation.objects.filter(name=location_name).first()
                 if location:
-                    _device.location = location
+                    if _device.location != location:
+                        _device.rack = None
+                        _device.location = location
                 else:
                     self.adapter.job.logger.warning(
                         f"Unable to update Device {self.name} with Location '{location_name}' — not found in Nautobot."
