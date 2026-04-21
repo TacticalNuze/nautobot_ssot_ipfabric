@@ -285,7 +285,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     try:
                         device_model = self.device(**dev)
                         self.add(device_model)
-                        location.add_child(device_model)
                     except ObjectAlreadyExists:
                         self.job.logger.warning(f"Duplicate Device discovered, {dev}")
                     except ValueError as exc:

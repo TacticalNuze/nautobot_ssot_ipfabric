@@ -109,7 +109,7 @@ class Location(DiffSyncExtras):
     _modelname = "location"
     _identifiers = ("name",)
     _attributes = ("site_id", "status", "parent_name")
-    _children = {"location": "locations", "device": "devices"}
+    _children = {"location": "locations"}
 
     name: str
     site_id: Optional[str] = None
@@ -117,7 +117,6 @@ class Location(DiffSyncExtras):
     location_type: str = "Site"
     parent_name: Optional[str] = None
     locations: List["Location"] = []
-    devices: List["Device"] = []
     vlans: List["Vlan"] = []
 
     @classmethod

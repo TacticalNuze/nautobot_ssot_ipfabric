@@ -204,13 +204,6 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                     )
                 continue
 
-            # Retrieve the root location object from DiffSync to attach the device
-            try:
-                root_diffsync_location = self.get(self.location, root_location.name)
-                root_diffsync_location.add_child(device)
-            except Exception as e:
-                logger.error(f"Could not find root location {root_location.name} in DiffSync for device {device_record.name}: {e}")
-
     def load_vlans(self, filtered_vlans: List, location):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
         for vlan_record in filtered_vlans:
