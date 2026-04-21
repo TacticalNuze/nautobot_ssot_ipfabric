@@ -165,15 +165,15 @@ class NautobotDiffSync(DiffSyncModelAdapters):
             # Resolve the IPFabric-level location that owns this device.
             # IPFabric only knows about site-level locations (not racks/floors/sub-locations).
             # We walk up the Nautobot location hierarchy until we reach a location that has
-            # the 'ipfabric_site_id' custom field set (i.e. a location synced from IPFabric),
+            # the 'SSoT Synced from IPFabric' tag (i.e. a location synced from IPFabric),
             # or the absolute root if none is found (safe fallback for first-time syncs).
             # This handles arbitrary hierarchy depths, e.g.:
-            #   Site 1 → Site 1.1 → Site 1.1.a (ipfabric_site_id set) → Rack → Device
+            #   Site 1 → Site 1.1 → Site 1.1.a (SSoT tag set) → Rack → Device
             # Without this, the naive root-walk would land at "Site 1" when IPFabric
             # reports the device under "Site 1.1.a", causing location_name mismatches.
             root_location = device_record.location
             while root_location.parent:
-                if root_location.custom_field_data.get("ipfabric_site_id"):
+                if root_location.tags.filter(name="SSoT Synced from IPFabric").exists():
                     break  # This is an IPFabric-synced site — stop here
                 root_location = root_location.parent
 
