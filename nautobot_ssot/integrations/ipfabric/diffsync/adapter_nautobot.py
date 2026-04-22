@@ -128,6 +128,16 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                     logger.debug(f"Skipping Nautobot Device due to missing serial: {device_record.name}")
                 continue
 
+            if "/" in device_record.serial:
+                fixed_serial = device_record.serial.replace("/", "", 1)
+                self.job.logger.info(
+                    f"Fixing serial number for {device_record.name} in Nautobot database: {device_record.serial} -> {fixed_serial}"
+                )
+                device_record.serial = fixed_serial
+                # Using update() to avoid triggering validations/signals during load phase, 
+                # but fixing the underlying data so DiffSync identifiers match.
+                Device.objects.filter(pk=device_record.pk).update(serial=fixed_serial)
+
             if device_record.status.name == SAFE_DELETE_DEVICE_STATUS and device_record.tags.filter(name="SSoT Safe Delete").exists():
                 if self.job.debug:
                     logger.debug(

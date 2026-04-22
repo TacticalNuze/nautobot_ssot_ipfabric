@@ -1,7 +1,8 @@
 import re
 from typing import Dict, Any, List
+
 def parse_virtual_machine_name(full_name: str, serial_number: str) -> tuple:
-    """Strip the last segment or trailing slash from names and serial numbers if a slash is present."""
+    """Strip the last segment or trailing slash from names, and remove the first slash from serial numbers."""
     def process_string(s: str) -> str:
         if not s:
             return s
@@ -18,7 +19,7 @@ def parse_virtual_machine_name(full_name: str, serial_number: str) -> tuple:
         return s.rsplit('/', 1)[0]
 
     final_name = process_string(full_name)
-    final_serial = process_string(serial_number)
+    final_serial = serial_number.replace("/", "", 1) if serial_number else ""
     return final_name, final_serial
 
 
