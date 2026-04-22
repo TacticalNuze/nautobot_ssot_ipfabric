@@ -251,15 +251,15 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     for index, member in enumerate(stack_members):
                         # using `or` syntax in case memberSn is defined as None
                         member_sn = member.get("memberSn") or ""
-                        parsed_name, _ = parse_virtual_machine_name(device.hostname, member_sn)
+                        parsed_name, parsed_member_serial = parse_virtual_machine_name(device.hostname, member_sn)
                         # Use the raw stack member serial as-is to preserve uniqueness (e.g. SERIAL/XXXX)
-                        raw_member_sn = member_sn
+                        #raw_member_sn = member_sn
                         args = base_args.copy()
                         if pn := member.get("pn"):
                             args["model"] = pn
                         args.update(
                             {
-                                "serial_number": raw_member_sn if len(raw_member_sn) < device_serial_max_length else "",
+                                "serial_number": parsed_member_serial if len(parsed_member_serial) < device_serial_max_length else "",
                                 "name": f"{parsed_name}-{member.get('member')}",
                                 "vc_name": parsed_name,
                                 "vc_master": False,
