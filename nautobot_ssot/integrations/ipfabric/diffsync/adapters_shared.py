@@ -35,5 +35,6 @@ class DiffSyncModelAdapters(Adapter):
     # vlan = diffsync_models.Vlan
 
     top_level = [
+        "device",
         "location",
     ]
