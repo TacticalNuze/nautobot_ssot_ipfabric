@@ -174,7 +174,9 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         # Get all interfaces for devices
         for interface in self.client.inventory.interfaces.all():
             interfaces[interface["sn"]].append(interface)
-
+        # Get all VSS chassis
+        for chassis in self.client.technology.platforms.vss.chassis.all(columns=["master", "member", "memberSn", "pn", "sn"]):
+            stacks[chassis["sn"]].append(chassis)
         # Get all stacks for devices
         for stack in self.client.technology.platforms.stacks_members.all(
             columns=["master", "member", "memberSn", "pn", "sn"]
