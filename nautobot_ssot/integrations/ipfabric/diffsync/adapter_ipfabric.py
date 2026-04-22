@@ -233,12 +233,12 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "platform": device.family,
                 }
                 if device.sn not in stacks:
-                    parsed_name, _ = parse_virtual_machine_name(device.hostname, device.sn)
+                    parsed_name, parsed_serial= parse_virtual_machine_name(device.hostname, device.sn)
                     # Use the raw IPFabric serial as-is (includes /XXXX suffix) to preserve uniqueness
-                    raw_serial = device.sn or ""
+                    #raw_serial = device.sn or ""
                     args = base_args.copy()
                     args["name"] = parsed_name
-                    args["serial_number"] = raw_serial if len(raw_serial) < device_serial_max_length else ""
+                    args["serial_number"] = parsed_serial
                     member_devices = [args]
                 else:
                     # member with the lowest member number will be considered master,
