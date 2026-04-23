@@ -390,6 +390,8 @@ class Device(DiffSyncExtras):
                     new_device.role = device_role_object
                     if new_device.location != location_object:
                         new_device.rack = None
+                        new_device.face = ""
+                        new_device.position = None
                         new_device.location = location_object
                     if platform_object:
                         new_device.platform = platform_object
@@ -542,6 +544,8 @@ class Device(DiffSyncExtras):
                 if location:
                     if _device.location != location:
                         _device.rack = None
+                        _device.face = ""
+                        _device.position = None
                         _device.location = location
                 else:
                     self.adapter.job.logger.warning(
