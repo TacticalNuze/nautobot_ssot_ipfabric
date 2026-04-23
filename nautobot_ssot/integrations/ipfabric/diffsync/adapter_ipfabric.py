@@ -165,7 +165,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             self.job.logger.info(f"Available tables in platforms.vss: {dir(self.client.technology.platforms.vss)}")
             
         managed_ipv4 = defaultdict(dict)
-        stacks, interfaces = defaultdict(list), defaultdict(list)
+        stacks, VSS_chassis, interfaces = defaultdict(list), defaultdict(list), defaultdict(list)
 
         vlans = self.client.fetch_all("tables/vlan/site-summary")
 
@@ -179,8 +179,9 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         for interface in self.client.inventory.interfaces.all():
             interfaces[interface["sn"]].append(interface)
         # Get all VSS chassis
-        for chassis in self.client.technology.platforms.vss.chassis.all(columns=["master", "member", "memberSn", "pn", "sn"]):
-            stacks[chassis["sn"]].append(chassis)
+        for chassis in self.client.technology.platforms.cisco_vss_chassis.all(
+            columns=["hostname","slot", "chassisSn","sn"]):
+            VSS_chassis[chassis["sn"]].append(chassis)
         # Get all stacks for devices
         for stack in self.client.technology.platforms.stacks_members.all(
             columns=["master", "member", "memberSn", "pn", "sn"]
@@ -193,7 +194,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         """Load data from IP Fabric."""
         self.load_sites()
 
-        managed_ipv4, _, stacks, _ = self.load_data()
+        managed_ipv4, _, stacks, VSS_chassis, _ = self.load_data()
 
         for location in self.get_all(self.location):
             if location.name is None:
@@ -238,7 +239,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
                 }
-                if device.sn not in stacks:
+                if device.sn not in stacks and device.sn not in VSS_chassis:
                     parsed_name, parsed_serial= parse_virtual_machine_name(device.hostname, device.sn)
                     # Use the raw IPFabric serial as-is (includes /XXXX suffix) to preserve uniqueness
                     #raw_serial = device.sn or ""
@@ -246,7 +247,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     args["name"] = parsed_name
                     args["serial_number"] = parsed_serial
                     member_devices = [args]
-                else:
+                elif device.sn in stacks:
                     # member with the lowest member number will be considered master,
                     # and vc_priority and vc_position will both be derived from the member field,
                     # as the role field will depend on operational state and not config,
@@ -281,7 +282,37 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                                 }
                             )
                         member_devices.append(args)
-
+                elif device.sn in VSS_chassis:
+                    vss_members = VSS_chassis[device.sn]
+                    vss_members.sort(key=lambda x: x["slot"])
+                    member_devices = []
+                    for index, member in enumerate(vss_members):
+                        # using `or` syntax in case memberSn is defined as None
+                        member_sn = member.get("chassisSn") or ""
+                        parsed_name, parsed_member_serial = parse_virtual_machine_name(device.hostname, member_sn)
+                        # Use the raw stack member serial as-is to preserve uniqueness (e.g. SERIAL/XXXX)
+                        #raw_member_sn = member_sn
+                        args = base_args.copy()
+                        if pn := member.get("pn"):
+                            args["model"] = pn
+                        args.update(
+                            {
+                                "serial_number": parsed_member_serial if len(parsed_member_serial) < device_serial_max_length else "",
+                                "name": f"{parsed_name}-{member.get('slot')}",
+                                "vc_name": parsed_name,
+                                "vc_master": False,
+                                "vc_priority": member.get("slot"),
+                                "vc_position": member.get("slot"),
+                            }
+                        )
+                        if index == 0:
+                            args.update(
+                                {
+                                    "name": f"{parsed_name}-1",
+                                    "vc_master": True,
+                                }
+                            )
+                        member_devices.append(args)
                 for index, dev in enumerate(member_devices):
                     if not dev["serial_number"]:
                         self.job.logger.warning(
