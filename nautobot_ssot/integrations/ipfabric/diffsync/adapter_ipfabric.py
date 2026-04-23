@@ -137,7 +137,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             try:
                 interface = self.interface(
                     name=iface_name,
-                    device_name=iface.get("hostname"),
+                    device_name=device_model.name,
                     description=iface.get("dscr", ""),
                     enabled=True,
                     mac_address=(

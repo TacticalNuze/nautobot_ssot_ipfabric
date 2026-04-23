@@ -3,6 +3,9 @@ from typing import Dict, Any, List
 
 def parse_virtual_machine_name(full_name: str, serial_number: str) -> tuple:
     """Strip the last segment or trailing slash from names, and remove the first slash from serial numbers."""
+    if full_name and ".gt.ferlan.it" in full_name:
+        full_name = full_name.replace(".gt.ferlan.it", "")
+
     def process_string(s: str) -> str:
         if not s:
             return s
