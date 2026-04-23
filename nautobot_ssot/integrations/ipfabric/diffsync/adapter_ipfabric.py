@@ -180,7 +180,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             interfaces[interface["sn"]].append(interface)
         # Get all VSS chassis
         for chassis in self.client.technology.platforms.cisco_vss_chassis.all(
-            columns=["hostname","slot", "chassisSn","sn"]):
+            columns=["hostname","slot","chassisSn","sn"]):
             VSS_chassis[chassis["sn"]].append(chassis)
         # Get all stacks for devices
         for stack in self.client.technology.platforms.stacks_members.all(
@@ -188,7 +188,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         ):
             stacks[stack["sn"]].append(stack)
 
-        return managed_ipv4, vlans, stacks, interfaces
+        return managed_ipv4, vlans, stacks, VSS_chassis, interfaces
 
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
         """Load data from IP Fabric."""
