@@ -129,7 +129,7 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 continue
 
             if "/" in device_record.serial:
-                fixed_serial = device_record.serial.split("/", 1)[0]
+                fixed_serial = device_record.serial.split("/", 1)[0].upper()
                 self.job.logger.info(
                     f"Fixing serial number for {device_record.name} in Nautobot database: {device_record.serial} -> {fixed_serial}"
                 )
@@ -137,11 +137,29 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 # Using update() to avoid triggering validations/signals during load phase, 
                 # but fixing the underlying data so DiffSync identifiers match.
                 Device.objects.filter(pk=device_record.pk).update(serial=fixed_serial)
+            elif device_record.serial != device_record.serial.upper():
+                # Normalize existing serials to uppercase so they match IPFabric's normalized output.
+                fixed_serial = device_record.serial.upper()
+                self.job.logger.info(
+                    f"Normalizing serial case for {device_record.name} in Nautobot database: {device_record.serial} -> {fixed_serial}"
+                )
+                device_record.serial = fixed_serial
+                Device.objects.filter(pk=device_record.pk).update(serial=fixed_serial)
 
             if device_record.status.name == SAFE_DELETE_DEVICE_STATUS and device_record.tags.filter(name="SSoT Safe Delete").exists():
                 if self.job.debug:
                     logger.debug(
                         f"Skipping Nautobot Device '{device_record.name}' as it is already marked for Safe Delete."
+                    )
+                continue
+
+            # Mirror the platform filter applied on the IPFabric side.
+            # vCMP devices are skipped in the IPFabric adapter; without this matching
+            # filter the Nautobot adapter would load them and DiffSync would soft-delete them.
+            if device_record.platform and device_record.platform.name.lower() == "vcmp":
+                if self.job.debug:
+                    logger.debug(
+                        f"Skipping Nautobot Device '{device_record.name}' — platform 'vcmp' is excluded from sync."
                     )
                 continue
 

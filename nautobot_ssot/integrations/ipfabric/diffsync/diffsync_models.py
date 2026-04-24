@@ -357,24 +357,37 @@ class Device(DiffSyncExtras):
 
         if device_type_object and location_object and device_role_object and device_status_object:
             try:
-                # First try to find by name (case-insensitive) to handle cases where the device exists but has no serial or a different serial
-                existing_device = NautobotDevice.objects.filter(name__iexact=device_name, location=location_object).first()
+                # Prioritize lookup by serial number (the DiffSync identifier) so that devices
+                # whose serial was cleaned (e.g. "ABC123/WLC" → "ABC123") are found and
+                # resurrected correctly instead of being created as duplicates.
+                serial = ids.get("serial_number")
+                existing_device = None
+                if serial:
+                    existing_device = NautobotDevice.objects.filter(serial=serial).first()
                 if not existing_device:
-                    # Also try without location filter in case it's in a sub-location but hasn't been moved yet
+                    # Fall back to name lookup (case-insensitive), scoped to location first
+                    existing_device = NautobotDevice.objects.filter(name__iexact=device_name, location=location_object).first()
+                if not existing_device:
                     existing_device = NautobotDevice.objects.filter(name__iexact=device_name).first()
+
                 if existing_device:
                     new_device = existing_device
                     created = False
-                    new_device.serial = ids.get("serial_number")
+                    new_device.serial = serial
+                    new_device.name = device_name
                     new_device.status = device_status_object
                     new_device.device_type = device_type_object
                     new_device.role = device_role_object
-                    new_device.location = location_object
+                    if new_device.location != location_object:
+                        new_device.rack = None
+                        new_device.face = ""
+                        new_device.position = None
+                        new_device.location = location_object
                     if platform_object:
                         new_device.platform = platform_object
                 else:
                     new_device, created = NautobotDevice.objects.get_or_create(
-                        serial=ids.get("serial_number"),
+                        serial=serial,
                         defaults={
                             "name": device_name,
                             "status": device_status_object,
@@ -385,7 +398,7 @@ class Device(DiffSyncExtras):
                         },
                     )
                 if not created and not existing_device:
-                    # Device already exists by serial — update mutable fields to reflect IPFabric data
+                    # Device already exists by serial (found via get_or_create) — update mutable fields
                     new_device.name = device_name
                     new_device.status = device_status_object
                     new_device.device_type = device_type_object
@@ -442,9 +455,11 @@ class Device(DiffSyncExtras):
 
     def delete(self) -> Optional["DiffSyncModel"]:
         """Delete device in Nautobot."""
-        device_object = NautobotDevice.objects.filter(name__iexact=self.name).first()
-        if not device_object and self.serial_number:
+        device_object = None
+        if self.serial_number:
             device_object = NautobotDevice.objects.filter(serial=self.serial_number).first()
+        if not device_object:
+            device_object = NautobotDevice.objects.filter(name__iexact=self.name).first()
             
         if not device_object:
             self.adapter.job.logger.info(
@@ -460,9 +475,11 @@ class Device(DiffSyncExtras):
 
     def update(self, attrs):
         """Update devices in Nautobot based on Source."""
-        _device = NautobotDevice.objects.filter(name__iexact=self.name).first()
-        if not _device and self.serial_number:
+        _device = None
+        if self.serial_number:
             _device = NautobotDevice.objects.filter(serial=self.serial_number).first()
+        if not _device:
+            _device = NautobotDevice.objects.filter(name__iexact=self.name).first()
             
         if not _device:
             self.adapter.job.logger.error(f"Unable to find a Device with the name {self.name} or serial number {self.serial_number} to update")
