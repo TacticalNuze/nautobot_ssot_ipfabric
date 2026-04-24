@@ -160,10 +160,6 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
 
     def load_data(self):
         """Load shared data from IP Fabric."""
-        self.job.logger.info(f"Available tables in platforms: {dir(self.client.technology.platforms)}")
-        if hasattr(self.client.technology.platforms, "vss"):
-            self.job.logger.info(f"Available tables in platforms.vss: {dir(self.client.technology.platforms.vss)}")
-            
         managed_ipv4 = defaultdict(dict)
         stacks, VSS_chassis, interfaces = defaultdict(list), defaultdict(list), defaultdict(list)
 
