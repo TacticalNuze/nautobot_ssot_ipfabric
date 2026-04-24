@@ -165,14 +165,16 @@ class Location(DiffSyncExtras):
             site_id = attrs.get("site_id")
             if site_id:
                 location.name = site_id
+            
+            safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
+            device_tags = location.tags.filter(pk=safe_delete_tag.pk)
+            if device_tags.exists():
+                location.tags.remove(safe_delete_tag)
+
             active_status = attrs.get("status")
-            if active_status == "Active":
-                safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
-                if location.status != active_status:
+            if active_status:
+                if location.status.name != active_status:
                     location.status = Status.objects.get(name=active_status)
-                device_tags = location.tags.filter(pk=safe_delete_tag.pk)
-                if device_tags.exists():
-                    location.tags.remove(safe_delete_tag)
             
             # location_type is excluded from _attributes (changing it causes Nautobot type-nesting
             # validation failures). parent_name IS tracked so DiffSync can assign parents to
@@ -461,14 +463,16 @@ class Device(DiffSyncExtras):
             return None
         else:
             return_super = True
+
+            safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
+            device_tags = _device.tags.filter(pk=safe_delete_tag.pk)
+            if device_tags.exists():
+                _device.tags.remove(safe_delete_tag)
+
             active_status = attrs.get("status")
-            if active_status == "Active":
-                safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
+            if active_status:
                 if _device.status.name != active_status:
                     _device.status = Status.objects.get(name=active_status)
-                device_tags = _device.tags.filter(pk=safe_delete_tag.pk)
-                if device_tags.exists():
-                    _device.tags.remove(safe_delete_tag)
 
             vendor_name = normalize_vendor_name(attrs.get("vendor") or self.vendor or "")
             device_type_name = attrs.get("model")
