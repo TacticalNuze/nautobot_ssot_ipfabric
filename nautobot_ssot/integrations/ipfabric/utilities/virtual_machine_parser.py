@@ -22,7 +22,7 @@ def parse_virtual_machine_name(full_name: str, serial_number: str) -> tuple:
         return s.rsplit('/', 1)[0]
 
     final_name = process_string(full_name)
-    final_serial = serial_number.replace("/", "", 1) if serial_number else ""
+    final_serial = serial_number.split("/",1)[0] if serial_number else ""
     return final_name, final_serial
 
 
