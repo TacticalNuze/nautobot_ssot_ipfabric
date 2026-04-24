@@ -129,7 +129,7 @@ class NautobotDiffSync(DiffSyncModelAdapters):
                 continue
 
             if "/" in device_record.serial:
-                fixed_serial = device_record.serial.replace("/", "", 1)
+                fixed_serial = device_record.serial.split("/", 1)[0]
                 self.job.logger.info(
                     f"Fixing serial number for {device_record.name} in Nautobot database: {device_record.serial} -> {fixed_serial}"
                 )
