@@ -407,7 +407,13 @@ class Device(DiffSyncExtras):
                 )
             else:
                 try:
-                    # Validated save happens inside of tag_objet
+                    if not created:
+                        safe_delete_tag, _ = Tag.objects.get_or_create(name="SSoT Safe Delete")
+                        device_tags = new_device.tags.filter(pk=safe_delete_tag.pk)
+                        if device_tags.exists():
+                            new_device.tags.remove(safe_delete_tag)
+                            
+                    # Validated save happens inside of tag_object
                     tonb_nbutils.tag_object(nautobot_object=new_device, custom_field=LAST_SYNCHRONIZED_CF_NAME)
                 except (DjangoBaseDBError, ValidationError) as error:
                     adapter.job.logger.error(
