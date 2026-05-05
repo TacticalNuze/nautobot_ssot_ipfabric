@@ -160,7 +160,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
 
     def load_data(self):
         """Load shared data from IP Fabric."""
-        self.job.logger.info(f"Available tables in platforms: {dir(self.client.technology.platforms)}")
+        self.job.logger.info(f"Available tables in modules : {dir(self.client.inventory.modules)}")
         if hasattr(self.client.technology.platforms, "vss"):
             self.job.logger.info(f"Available tables in platforms.vss: {dir(self.client.technology.platforms.vss)}")
             
@@ -187,7 +187,10 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             columns=["master", "member", "memberSn", "pn", "sn"]
         ):
             stacks[stack["sn"]].append(stack)
-
+        # Get the C9800 cisco devices from part numbers table 
+        for model in self.client.inventory.modules.all(
+            columns=["hostname","pid","sn","name"]
+        )
         return managed_ipv4, vlans, stacks, VSS_chassis, interfaces
 
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
