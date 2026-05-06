@@ -244,7 +244,9 @@ class IpFabricDataSource(DataSource):
 
         self.client.snapshot_id = self.kwargs["snapshot"]
         dryrun = self.kwargs["dryrun"]
-        safe_mode = self.kwargs["safe_delete_mode"]
+        safe_mode = True  # Safe delete mode is permanently enabled — the UI checkbox is ignored.
+        #safe_mode = self.kwargs["safe_delete_mode"]
+
         tagged_only = self.kwargs["sync_ipfabric_tagged_only"]
         location_filter = self.kwargs["location_filter"]
         debug_mode = self.kwargs["debug"]
