@@ -197,10 +197,8 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
         _chassis_name_pattern = _re.compile(r'^Chassis \d+$')
         c9800_chassis = defaultdict(list)
         for module in self.client.inventory.modules.all(
-            columns=["hostname", "pid", "sn", "name", "platform"]
+            columns=["hostname", "pid", "sn", "name"]
         ):
-            if (module.get("platform", "") or "").lower() != "cat9800":
-                continue
             module_name = (module.get("name") or "").strip()
             if not _chassis_name_pattern.match(module_name):
                 continue
