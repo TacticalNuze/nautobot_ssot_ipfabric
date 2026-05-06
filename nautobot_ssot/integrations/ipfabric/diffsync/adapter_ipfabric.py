@@ -187,17 +187,41 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             columns=["master", "member", "memberSn", "pn", "sn"]
         ):
             stacks[stack["sn"]].append(stack)
-        # Get the C9800 cisco devices from part numbers table 
-        for model in self.client.inventory.modules.all(
-            columns=["hostname","pid","sn","name"]
+
+        # Get C9800 chassis entries from the modules table.
+        # Only include rows where:
+        #   1. platform == "cat9800" (case-insensitive)
+        #   2. name matches exactly "Chassis <number>" (e.g. "Chassis 1", "Chassis 2")
+        #      with no trailing space after the number.
+        import re as _re
+        _chassis_name_pattern = _re.compile(r'^Chassis \d+$')
+        c9800_chassis = defaultdict(list)
+        for module in self.client.inventory.modules.all(
+            columns=["hostname", "pid", "sn", "name", "platform"]
+        ):
+            if (module.get("platform", "") or "").lower() != "cat9800":
+                continue
+            module_name = (module.get("name") or "").strip()
+            if not _chassis_name_pattern.match(module_name):
+                continue
+            hostname = module.get("hostname", "")
+            c9800_chassis[hostname].append(module)
+            self.job.logger.debug(
+                f"C9800 chassis entry found: hostname={hostname}, "
+                f"name={module_name}, sn={module.get('sn')}, pid={module.get('pid')}"
+            )
+
+        self.job.logger.info(
+            f"C9800 chassis loaded: {len(c9800_chassis)} unique hostnames with "
+            f"{sum(len(v) for v in c9800_chassis.values())} chassis entries."
         )
-        return managed_ipv4, vlans, stacks, VSS_chassis, interfaces
+        return managed_ipv4, vlans, stacks, VSS_chassis, interfaces, c9800_chassis
 
     def load(self):  # pylint: disable=too-many-locals,too-many-statements
         """Load data from IP Fabric."""
         self.load_sites()
 
-        managed_ipv4, _, stacks, VSS_chassis, _ = self.load_data()
+        managed_ipv4, _, stacks, VSS_chassis, _, c9800_chassis = self.load_data()
 
         for location in self.get_all(self.location):
             if location.name is None:
@@ -242,7 +266,46 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
                     "status": DEFAULT_DEVICE_STATUS,
                     "platform": device.family,
                 }
-                if device.sn not in stacks and device.sn not in VSS_chassis:
+                if device.sn not in stacks and device.sn not in VSS_chassis and device.hostname in c9800_chassis:
+                    # C9800 device: use chassis entries from the modules table.
+                    # Each "Chassis #N" module row becomes a virtual-chassis member.
+                    chassis_entries = c9800_chassis[device.hostname]
+                    chassis_entries.sort(key=lambda x: int((x.get("name") or "Chassis 0").split(" ")[-1]))
+                    member_devices = []
+                    for index, chassis in enumerate(chassis_entries):
+                        chassis_sn = chassis.get("sn") or ""
+                        _, parsed_chassis_serial = parse_virtual_machine_name(device.hostname, chassis_sn)
+                        parsed_name, _ = parse_virtual_machine_name(device.hostname, device.sn)
+                        chassis_pid = chassis.get("pid") or canonical_model
+                        # Normalise pid → DeviceType.model, same as the main device loop above
+                        canonical_chassis_model = chassis_pid
+                        try:
+                            mfr = Manufacturer.objects.get(name=vendor_name)
+                            dt = DeviceType.objects.filter(
+                                Q(model=chassis_pid) | Q(part_number=chassis_pid),
+                                manufacturer=mfr,
+                            ).first()
+                            if dt:
+                                canonical_chassis_model = dt.model
+                        except Manufacturer.DoesNotExist:
+                            pass
+                        except Exception as _norm_exc:  # pylint: disable=broad-except
+                            logger.debug("C9800 chassis model normalization failed for %s: %s", chassis_pid, _norm_exc)
+                        chassis_slot = index + 1  # slot 1-based from sorted order
+                        args = base_args.copy()
+                        args["model"] = canonical_chassis_model
+                        args.update(
+                            {
+                                "serial_number": parsed_chassis_serial if len(parsed_chassis_serial) < device_serial_max_length else "",
+                                "name": f"{parsed_name}-{chassis_slot}",
+                                "vc_name": parsed_name,
+                                "vc_master": index == 0,
+                                "vc_priority": chassis_slot,
+                                "vc_position": chassis_slot,
+                            }
+                        )
+                        member_devices.append(args)
+                elif device.sn not in stacks and device.sn not in VSS_chassis:
                     parsed_name, parsed_serial= parse_virtual_machine_name(device.hostname, device.sn)
                     # Use the raw IPFabric serial as-is (includes /XXXX suffix) to preserve uniqueness
                     #raw_serial = device.sn or ""
