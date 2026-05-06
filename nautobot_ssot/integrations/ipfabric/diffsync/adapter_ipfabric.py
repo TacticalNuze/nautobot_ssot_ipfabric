@@ -192,14 +192,10 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
             stacks[stack["sn"]].append(stack)
 
         # Get C9800 chassis entries from the modules table.
-        # Only include rows where:
-        #   1. platform == "cat9800" (case-insensitive)
-        #   2. name matches exactly "Chassis <number>" (e.g. "Chassis 1", "Chassis 2")
-        #      with no trailing space after the number.
         import re as _re
         _chassis_name_pattern = _re.compile(r'^Chassis \d+$')
         c9800_chassis = defaultdict(list)
-        for module in self.client.inventory.modules.all(
+        for module in self.client.inventory.pn.all(
             columns=["hostname", "pid", "sn", "name"]
         ):
             module_name = (module.get("name") or "").strip()
