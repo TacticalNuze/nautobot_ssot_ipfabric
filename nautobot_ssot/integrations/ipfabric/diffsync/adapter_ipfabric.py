@@ -160,10 +160,7 @@ class IPFabricDiffSync(DiffSyncModelAdapters):
 
     def load_data(self):
         """Load shared data from IP Fabric."""
-        # --- DEBUG: list all available tables/attributes under client.inventory ---
-        inventory_tables = [attr for attr in dir(self.client.inventory) if not attr.startswith("_")]
-        self.job.logger.info(f"[DEBUG] client.inventory attributes: {inventory_tables}")
-        self.job.logger.info(f"[DEBUG] client.inventory.modules attributes: {dir(self.client.inventory.modules)}")
+        self.job.logger.info(f"Available tables in modules : {dir(self.client.inventory.modules)}")
         if hasattr(self.client.technology.platforms, "vss"):
             self.job.logger.info(f"Available tables in platforms.vss: {dir(self.client.technology.platforms.vss)}")
             
